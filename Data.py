@@ -1,14 +1,18 @@
-{
- "cells": [],
- "metadata": {
-  "language_info": {
-   "name": "python"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+
+# Load datasets
+datasets = {
+    'ipc': pd.read_csv('Dataset/crime-by-juveniles-expanded.csv'),
+    'crime_against_women': pd.read_csv('Dataset/districtwise_crime_against_women_readable.csv'),
+    'cyber_crimes': pd.read_csv('Dataset/districtwise_cyber_crimes_readable.csv'),
+    'juveniles': pd.read_csv('Dataset/districtwise_ipc_crimes_readable.csv'),
+    'missing_persons_2017_2020': pd.read_csv('Dataset/districtwise-missing-persons-20172020-cleaned.csv'),
+    'missing_persons_2021_onwards': pd.read_csv('Dataset/districtwise-missing-persons-2021-onwards-cleaned.csv')
 }
-<<<<<<< HEAD
 
 # Get all unique states
 states = datasets['ipc']['State Name'].unique()
@@ -44,7 +48,8 @@ else:
     file_choice = None
 
 # Normalize input
-file_choice = file_choice.replace(' ', '_').lower()
+if file_choice:
+    file_choice = file_choice.replace(' ', '_').lower()
 
 if file_choice and file_choice in datasets:
     # Show available crime types
@@ -115,5 +120,3 @@ if file_choice and file_choice in datasets:
 else:
     if file_choice:
         print(f"Dataset '{file_choice}' not available. Choose from: {list(datasets.keys())}")
-=======
->>>>>>> 8b4dbc313721a90458b2ca71fdf5834748ee1b9c
