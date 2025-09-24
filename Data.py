@@ -23,6 +23,13 @@ for i, state in enumerate(sorted(states), 1):
 # User input
 state_name = input("\nEnter state name: ")
 
+# Handle state abbreviations
+all_states = datasets['ipc']['State Name'].unique()
+matching_states = [state for state in all_states if state_name.lower() in state.lower()]
+if matching_states and state_name.lower() != matching_states[0].lower():
+    print(f"Found matching state: {matching_states[0]}")
+    state_name = matching_states[0]
+
 # Show available districts for the selected state
 state_districts = datasets['ipc'][datasets['ipc']['State Name'].str.lower() == state_name.lower()]['District Name'].unique()
 if len(state_districts) > 0:
@@ -90,26 +97,30 @@ if file_choice and file_choice in datasets:
             print(f"\nData for {district_name}, {state_name} - {crime_choice} from {file_choice} dataset:")
             print(selected_data[['State Name', 'District Name', 'Year', crime_choice]])
             
-            # Create graphs
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+            show_graphs = input("\nDo you want to see the analysis graph? (yes/no): ").lower()
             
-            # Line graph - Yearly trend for the district
-            yearly_data = selected_data.groupby('Year')[crime_choice].sum()
-            ax1.plot(yearly_data.index, yearly_data.values, marker='o', linewidth=2)
-            ax1.set_title(f'{crime_choice} - Yearly Trend in {district_name}, {state_name}')
-            ax1.set_xlabel('Year')
-            ax1.set_ylabel('Number of Cases')
-            ax1.grid(True)
-            
-            # Bar graph - Yearly comparison for the district
-            ax2.bar(yearly_data.index, yearly_data.values)
-            ax2.set_title(f'{crime_choice} - Year-wise Cases in {district_name}, {state_name}')
-            ax2.set_xlabel('Year')
-            ax2.set_ylabel('Number of Cases')
-            ax2.set_xticks(yearly_data.index)
-            
-            plt.tight_layout()
-            plt.show()
+            if show_graphs in ['yes', 'y']:
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+                
+                # Line graph
+                yearly_data = selected_data.groupby('Year')[crime_choice].sum()
+                ax1.plot(yearly_data.index, yearly_data.values, marker='o', linewidth=2)
+                ax1.set_title(f'{crime_choice} - Yearly Trend in {district_name}, {state_name}')
+                ax1.set_xlabel('Year')
+                ax1.set_ylabel('Number of Cases')
+                ax1.grid(True)
+                
+                # Bar graph
+                ax2.bar(yearly_data.index, yearly_data.values)
+                ax2.set_title(f'{crime_choice} - Year-wise Cases in {district_name}, {state_name}')
+                ax2.set_xlabel('Year')
+                ax2.set_ylabel('Number of Cases')
+                ax2.set_xticks(yearly_data.index)
+                
+                plt.tight_layout()
+                plt.show()
+            else:
+                print("Analysis complete.")
         else:
             print(f"No data found for {district_name}, {state_name} in {file_choice} dataset.")
         
