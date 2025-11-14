@@ -6,24 +6,26 @@ This repository provides advanced analytics tools for exploring crime patterns a
 
 ## ✨ Key Features
 
-- 📊 **Interactive Crime Analysis** - CLI and Jupyter notebook interfaces
+- 📊 **Interactive CLI Analysis** - Comprehensive command-line interface
 - 🆚 **Cross-Dataset Comparison** - Compare IPC vs Cyber vs Women crimes  
 - 🌍 **Multi-State Analysis** - Compare crime patterns across states
 - 📈 **Advanced Visualizations** - Seaborn-powered charts and trend analysis
 - 🔍 **Flexible Filtering** - By state, district, crime type, and time period
 - 🎯 **Hotspot Identification** - Find top crime districts and patterns
 
-## Repository structure (current snapshot)
+## 📁 Repository Structure
 
-Top-level files and folders:
-
-- `Data.ipynb` — Jupyter notebook containing exploratory analysis and visualizations.
-- `Data.py` — Interactive script to query datasets by state/district and crime type. Loads CSVs from the `Dataset/` folder and prints selected rows.
-- `DataSet Merge.py` — Utility script added to merge or transform the missing-persons datasets (added upstream).
-- `Dataset/` — Folder with CSV dataset files (see list below).
-- `README.md` — This file (project overview and instructions).
-- `.cspell.json` — (editor-only) cSpell dictionary used to silence spelling warnings in VS Code for domain words like `districtwise`.
-- `LICENSE` — Project license file.
+```
+Suraksha_Analytics/
+├── Data.py                           # 🚀 Main analysis tool (CLI interface)
+├── Dataset/                          # 📊 Crime datasets (CSV files)
+├── setup_validator.py                # 🔧 Environment validation tool
+├── requirements.txt                  # 📦 Python dependencies
+├── README.md                         # 📖 Setup and usage guide
+├── CROSS_DATASET_FEATURES.md        # 📋 Advanced features documentation
+├── MERGED_MISSING_PERSONS_UPDATE.md # 📄 Dataset optimization notes
+└── LICENSE                          # ⚖️ Project license
+```
 
 
 ### Files currently in `Dataset/` (examples from repo)
@@ -34,7 +36,7 @@ Top-level files and folders:
 - `districtwise-missing-persons-20172020-cleaned.csv`
 - `districtwise-missing-persons-2021-onwards-cleaned.csv`
 
-If you add or rename files inside `Dataset/`, update the mapping at the top of `Data.py` or the notebook cell that loads CSVs.
+If you add or rename files inside `Dataset/`, update the dataset_files mapping in the `load_datasets()` function in `Data.py`.
 
 
 ## 🛠️ Quick Setup & Installation
@@ -122,24 +124,12 @@ python Data.py
 - `7` **🆚 Cross-Dataset Comparison** - Compare IPC vs Cyber vs Women crimes
 - `8` **🌍 Cross-State Analysis** - Same crime type across multiple states
 
-### Jupyter Notebook (`Data.ipynb`)
-
-For interactive analysis and visualization:
-
-```bash
-jupyter notebook Data.ipynb
-```
-
-**Or in VS Code:**
-1. Open `Data.ipynb` in VS Code
-2. Select Python kernel
-3. Run cells sequentially
-
-**Notebook Features:**
-- 📊 Interactive data exploration
-- 📈 Customizable visualizations  
-- ⚙️ Easy parameter modification
-- 📋 Comprehensive dataset summaries
+**🎯 Single Tool, Complete Solution:**
+The `Data.py` script provides everything you need:
+- 📊 Interactive step-by-step workflow
+- 📈 Built-in visualizations and charts
+- ⚙️ 8 different analysis options
+- 📋 Comprehensive error handling and guidance
 
 
 ## Git workflow notes (team collaboration)
@@ -184,8 +174,8 @@ git revert <commit-hash>
 
 ## Contributing
 
-- When you edit `Data.py` or `Data.ipynb`, please run the script/notebook locally to verify behavior before pushing.
-- Communicate breaking changes in the dataset filenames or column names to the team so we can keep `Data.py` and the notebook in sync.
+- When you edit `Data.py`, please run the script locally to verify behavior before pushing.
+- Communicate breaking changes in the dataset filenames or column names to the team.
 
 
 ## Questions or next steps

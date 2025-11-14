@@ -62,7 +62,7 @@ def check_files():
     print(f"   Project Directory: {script_dir}")
     
     # Check main files
-    main_files = ['Data.py', 'Data.ipynb']
+    main_files = ['Data.py']
     for file in main_files:
         file_path = script_dir / file
         if file_path.exists():
@@ -154,9 +154,8 @@ def main():
     if all_passed:
         print("🎉 ALL CHECKS PASSED!")
         print("✅ Your system is ready to run Suraksha Analytics")
-        print("\n🚀 You can now run:")
-        print("   • python Data.py        (for interactive CLI)")
-        print("   • jupyter notebook      (to open Data.ipynb)")
+        print("🚀 You can now run:")
+        print("   • python Data.py        (comprehensive crime data analysis tool)")
     else:
         print("❌ SOME CHECKS FAILED!")
         print("🔧 Please fix the issues above before running the analysis tools")
