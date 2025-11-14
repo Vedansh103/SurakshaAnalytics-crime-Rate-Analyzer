@@ -18,9 +18,41 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 import sys
+import os
+from pathlib import Path
 
 # Seaborn defaults
 sns.set(style="whitegrid", palette="deep")
+
+# Get the directory where this script is located
+SCRIPT_DIR = Path(__file__).parent.absolute()
+DATASET_DIR = SCRIPT_DIR / "Dataset"
+
+def check_dataset_directory():
+    """
+    Check if Dataset directory exists and create helpful error messages if not.
+    """
+    if not DATASET_DIR.exists():
+        print("❌ ERROR: Dataset directory not found!")
+        print(f"   Expected location: {DATASET_DIR}")
+        print("   Please ensure you have:")
+        print("   1. Cloned the complete repository")
+        print("   2. The 'Dataset' folder is in the same directory as Data.py")
+        print("   3. All CSV files are present in the Dataset folder")
+        return False
+    return True
+
+def get_dataset_path(filename):
+    """
+    Get the full path to a dataset file, with proper error handling.
+    """
+    full_path = DATASET_DIR / filename
+    if not full_path.exists():
+        print(f"❌ ERROR: File not found: {filename}")
+        print(f"   Expected location: {full_path}")
+        print("   Please check if the file exists in the Dataset folder")
+        return None
+    return str(full_path)
 
 
 def clean_dataset(df):
@@ -65,31 +97,65 @@ def load_datasets():
     """
     Loads AND CLEANS all crime datasets from CSV files into a dictionary.
     Returns dict of cleaned DataFrames or None on error.
-    
-    NOTE: This function already implements the requested try...except FileNotFoundError.
+    Uses robust path handling that works on any system.
     """
-    dataset_paths = {
-        'ipc': 'Dataset/crime-by-juveniles-expanded.csv',
-        'crime_against_women': 'Dataset/districtwise_crime_against_women_readable.csv',
-        'cyber_crimes': 'Dataset/districtwise_cyber_crimes_readable.csv',
-        'juveniles': 'Dataset/districtwise_ipc_crimes_readable.csv',
-        'missing_persons': 'Dataset/districtwise-missing-persons-merged.csv'
+    # Check if Dataset directory exists
+    if not check_dataset_directory():
+        return None
+    
+    dataset_files = {
+        'ipc': 'crime-by-juveniles-expanded.csv',
+        'crime_against_women': 'districtwise_crime_against_women_readable.csv',
+        'cyber_crimes': 'districtwise_cyber_crimes_readable.csv',
+        'juveniles': 'districtwise_ipc_crimes_readable.csv',
+        'missing_persons': 'districtwise-missing-persons-merged.csv'
     }
     
     datasets = {}
+    missing_files = []
+    
+    print("🔍 Checking for required dataset files...")
+    
+    # First, check if all files exist
+    for name, filename in dataset_files.items():
+        file_path = get_dataset_path(filename)
+        if file_path is None:
+            missing_files.append(filename)
+        else:
+            print(f"   ✅ Found: {filename}")
+    
+    if missing_files:
+        print(f"\n❌ Missing {len(missing_files)} required files:")
+        for file in missing_files:
+            print(f"   - {file}")
+        print(f"\n📁 Expected location: {DATASET_DIR}")
+        print("🔧 Please ensure all CSV files are present before running the analysis.")
+        return None
+    
+    print(f"\n📊 Loading {len(dataset_files)} datasets...")
+    
     try:
-        for name, path in dataset_paths.items():
-            print(f"Loading dataset: {name} from {path}")
-            df = pd.read_csv(path)
+        for name, filename in dataset_files.items():
+            file_path = get_dataset_path(filename)
+            print(f"Loading dataset: {name} from {filename}")
+            df = pd.read_csv(file_path)
             datasets[name] = clean_dataset(df)
-        print("\nAll datasets loaded and cleaned successfully.")
+        
+        print("\n✅ All datasets loaded and cleaned successfully!")
+        print(f"📍 Working directory: {SCRIPT_DIR}")
         return datasets
+        
     except FileNotFoundError as e:
-        print(f"Error loading dataset: {e}")
-        print("Please make sure the 'Dataset' folder and all CSV files are in the correct location.")
+        print(f"❌ File not found: {e}")
+        print("🔧 Please ensure all CSV files are in the Dataset folder.")
+        return None
+    except pd.errors.EmptyDataError as e:
+        print(f"❌ Empty or corrupted file: {e}")
+        print("🔧 Please check the CSV file integrity.")
         return None
     except Exception as e:
-        print(f"An error occurred during loading or cleaning: {e}")
+        print(f"❌ Unexpected error during loading: {e}")
+        print("🔧 Please check file permissions and CSV format.")
         return None
 
 
@@ -710,10 +776,51 @@ def safe_input_list(prompt, available_values=None, to_lower=True, allow_all=True
         return parse_multiple_selection(raw, list(available_values), allow_all=allow_all)
 
 
+def verify_setup():
+    """
+    Verify that the setup is correct for running the analysis.
+    Provides helpful information about the current environment.
+    """
+    print("🔧 SETUP VERIFICATION")
+    print("="*50)
+    print(f"📍 Script location: {SCRIPT_DIR}")
+    print(f"📁 Dataset directory: {DATASET_DIR}")
+    print(f"🐍 Python version: {sys.version.split()[0]}")
+    
+    # Check required packages
+    required_packages = ['pandas', 'numpy', 'matplotlib', 'seaborn']
+    print(f"\n📦 Package versions:")
+    for package in required_packages:
+        try:
+            if package == 'pandas':
+                print(f"   {package}: {pd.__version__}")
+            elif package == 'numpy':
+                print(f"   {package}: {np.__version__}")
+            elif package == 'matplotlib':
+                print(f"   {package}: {plt.matplotlib.__version__}")
+            elif package == 'seaborn':
+                print(f"   {package}: {sns.__version__}")
+        except Exception:
+            print(f"   {package}: ❌ Not installed")
+    
+    print("="*50)
+
+
 def main():
     warnings.filterwarnings('ignore')
+    
+    # Show setup information
+    verify_setup()
+    
+    # Load datasets
     datasets = load_datasets()
     if not datasets:
+        print("\n🚨 SETUP INSTRUCTIONS:")
+        print("1. Ensure you're running this script from the project root directory")
+        print("2. Verify the 'Dataset' folder exists in the same directory as Data.py")
+        print("3. Check that all required CSV files are present in the Dataset folder")
+        print("4. Make sure you have read permissions for the files")
+        print("\n💡 TIP: If you cloned from Git, make sure you pulled all files including the Dataset folder")
         return
 
     print("\n" + "="*60)
