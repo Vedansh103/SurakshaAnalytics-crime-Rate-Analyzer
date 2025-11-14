@@ -73,8 +73,7 @@ def load_datasets():
         'crime_against_women': 'Dataset/districtwise_crime_against_women_readable.csv',
         'cyber_crimes': 'Dataset/districtwise_cyber_crimes_readable.csv',
         'juveniles': 'Dataset/districtwise_ipc_crimes_readable.csv',
-        'missing_persons_2017_2020': 'Dataset/districtwise-missing-persons-20172020-cleaned.csv',
-        'missing_persons_2021_onwards': 'Dataset/districtwise-missing-persons-2021-onwards-cleaned.csv'
+        'missing_persons': 'Dataset/districtwise-missing-persons-merged.csv'
     }
     
     datasets = {}
@@ -509,6 +508,190 @@ def show_crime_hotspots(data, state, crime):
     print(top_n_districts)
 
 
+# *** NEW FUNCTIONS: Cross-Dataset Comparison ***
+def compare_dataset_types(datasets, state_name, district_name, location_desc):
+    """
+    Compare different dataset types (IPC vs Cyber vs Women crimes, etc.) for the same location.
+    Shows total crime counts across different dataset categories.
+    """
+    print(f"\n🆚 CROSS-DATASET COMPARISON for {location_desc}")
+    print("="*60)
+    
+    # Get data for each dataset type
+    dataset_totals = {}
+    dataset_yearly = {}
+    
+    for dataset_name, dataset_df in datasets.items():
+        # Filter data for location
+        if district_name == 'all':
+            filtered_data = dataset_df[dataset_df['State Name'] == state_name]
+        else:
+            filtered_data = dataset_df[
+                (dataset_df['State Name'] == state_name) & 
+                (dataset_df['District Name'] == district_name)
+            ]
+        
+        if not filtered_data.empty:
+            # Get crime columns
+            crime_columns = [col for col in dataset_df.columns if col not in 
+                           ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+            
+            if crime_columns:
+                # Calculate total crimes for this dataset
+                total_crimes = filtered_data[crime_columns].sum().sum()
+                dataset_totals[dataset_name] = total_crimes
+                
+                # Calculate yearly totals for trend comparison
+                yearly_totals = filtered_data.groupby('Year')[crime_columns].sum().sum(axis=1).reset_index()
+                yearly_totals.columns = ['Year', dataset_name]
+                dataset_yearly[dataset_name] = yearly_totals
+    
+    if not dataset_totals:
+        print(f"❌ No data found for {location_desc} across any datasets.")
+        return
+    
+    # Display summary table
+    print(f"\n📊 Total Crime Counts by Dataset Type:")
+    sorted_totals = sorted(dataset_totals.items(), key=lambda x: x[1], reverse=True)
+    for dataset_name, total in sorted_totals:
+        print(f"   {dataset_name.replace('_', ' ').title()}: {total:,} total crimes")
+    
+    # Create comparison plots
+    # 1. Bar chart of total crimes by dataset
+    plt.figure(figsize=(15, 10))
+    
+    plt.subplot(2, 1, 1)
+    dataset_names = [name.replace('_', ' ').title() for name, _ in sorted_totals]
+    totals = [total for _, total in sorted_totals]
+    
+    sns.barplot(x=dataset_names, y=totals, palette="Set2")
+    plt.title(f"Total Crime Comparison by Dataset Type - {location_desc}", fontsize=14, fontweight='bold')
+    plt.xlabel("Dataset Type")
+    plt.ylabel("Total Crime Count")
+    plt.xticks(rotation=45)
+    
+    # 2. Line plot of trends over time
+    plt.subplot(2, 1, 2)
+    
+    # Merge all yearly data
+    if len(dataset_yearly) > 1:
+        merged_yearly = None
+        for dataset_name, yearly_data in dataset_yearly.items():
+            if merged_yearly is None:
+                merged_yearly = yearly_data
+            else:
+                merged_yearly = merged_yearly.merge(yearly_data, on='Year', how='outer')
+        
+        if merged_yearly is not None:
+            merged_yearly = merged_yearly.fillna(0)
+            
+            for dataset_name in dataset_yearly.keys():
+                if dataset_name in merged_yearly.columns:
+                    sns.lineplot(data=merged_yearly, x='Year', y=dataset_name, 
+                               marker='o', label=dataset_name.replace('_', ' ').title())
+            
+            plt.title(f"Crime Trends Comparison by Dataset Type - {location_desc}", fontsize=14, fontweight='bold')
+            plt.xlabel("Year")
+            plt.ylabel("Total Crime Count")
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+            plt.xticks(merged_yearly['Year'].astype(int))
+    
+    plt.tight_layout()
+    plt.show()
+
+
+def compare_states_datasets(datasets, selected_dataset_name, selected_crime_type):
+    """
+    Compare the same crime type across different states using the selected dataset.
+    """
+    print(f"\n🌍 CROSS-STATE COMPARISON: {selected_crime_type} from {selected_dataset_name} dataset")
+    print("="*80)
+    
+    selected_dataset = datasets[selected_dataset_name]
+    
+    if selected_crime_type not in selected_dataset.columns:
+        print(f"❌ Crime type '{selected_crime_type}' not found in {selected_dataset_name} dataset.")
+        return
+    
+    # Get user input for states to compare
+    available_states = sorted(selected_dataset['State Name'].unique())
+    print(f"\nAvailable states in {selected_dataset_name} dataset:")
+    for i, state in enumerate(available_states[:15], 1):  # Show first 15 states
+        print(f"   {i:2d}. {state.title()}")
+    
+    if len(available_states) > 15:
+        print(f"   ... and {len(available_states) - 15} more states")
+    
+    states_input = input("\nEnter states to compare (comma-separated numbers or names, or 'all' for top 10): ").strip()
+    
+    if states_input.lower() == 'all':
+        # Get top 10 states by total crime
+        state_totals = selected_dataset.groupby('State Name')[selected_crime_type].sum().sort_values(ascending=False)
+        chosen_states = state_totals.head(10).index.tolist()
+        print(f"\nSelected top 10 states by {selected_crime_type} cases")
+    else:
+        chosen_states = parse_multiple_selection(states_input, available_states, allow_all=False)
+    
+    if not chosen_states:
+        print("❌ No valid states selected.")
+        return
+    
+    # Create comparison data
+    state_comparison = []
+    state_yearly = {}
+    
+    for state in chosen_states:
+        state_data = selected_dataset[selected_dataset['State Name'] == state]
+        if not state_data.empty:
+            total_crimes = state_data[selected_crime_type].sum()
+            state_comparison.append({'State': state.title(), 'Total_Crimes': total_crimes})
+            
+            # Yearly data for trend analysis
+            yearly = state_data.groupby('Year')[selected_crime_type].sum().reset_index()
+            state_yearly[state] = yearly
+    
+    if not state_comparison:
+        print("❌ No data found for selected states.")
+        return
+    
+    # Convert to DataFrame and sort
+    comparison_df = pd.DataFrame(state_comparison)
+    comparison_df = comparison_df.sort_values('Total_Crimes', ascending=False)
+    
+    # Display results
+    print(f"\n📊 {selected_crime_type} Comparison Across States:")
+    print("="*50)
+    for i, (_, row) in enumerate(comparison_df.iterrows(), 1):
+        print(f"   {i:2d}. {row['State']}: {row['Total_Crimes']:,} cases")
+    
+    # Create visualizations
+    plt.figure(figsize=(15, 10))
+    
+    # 1. Bar chart comparison
+    plt.subplot(2, 1, 1)
+    sns.barplot(data=comparison_df, x='State', y='Total_Crimes', palette='viridis')
+    plt.title(f'{selected_crime_type} - Total Cases by State', fontsize=14, fontweight='bold')
+    plt.xlabel('State')
+    plt.ylabel(f'Total {selected_crime_type} Cases')
+    plt.xticks(rotation=45)
+    
+    # 2. Trend lines for each state
+    plt.subplot(2, 1, 2)
+    
+    for state, yearly_data in state_yearly.items():
+        if not yearly_data.empty:
+            sns.lineplot(data=yearly_data, x='Year', y=selected_crime_type, 
+                        marker='o', label=state.title())
+    
+    plt.title(f'{selected_crime_type} - Trends Across States', fontsize=14, fontweight='bold')
+    plt.xlabel('Year')
+    plt.ylabel(f'{selected_crime_type} Cases')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    plt.tight_layout()
+    plt.show()
+
+
 def safe_input_list(prompt, available_values=None, to_lower=True, allow_all=True):
     """
     Wrapper around parse_multiple_selection that first prints a prompt and optional available_values.
@@ -533,30 +716,40 @@ def main():
     if not datasets:
         return
 
-    master_list_df = datasets.get('ipc')
-    if master_list_df is None:
-        print("Error: 'ipc' dataset (master list) is missing.")
-        return
-
-    all_states = master_list_df['State Name'].unique()
+    print("\n" + "="*60)
+    print("🚀 SURAKSHA ANALYTICS - CRIME DATA ANALYSIS TOOL")
+    print("="*60)
+    print("Please follow the steps in order:")
+    print("1️⃣  First: Choose Dataset")
+    print("2️⃣  Second: Choose State") 
+    print("3️⃣  Third: Choose District")
+    print("4️⃣  Fourth: Choose Crime Type")
+    print("5️⃣  Finally: Select Analysis Option")
+    print("="*60)
 
     while True:
-        state_name = get_state_choice(all_states)
-        if not state_name:
-            print("Invalid state. Restarting selection...")
-            continue
-
-        district_name = get_district_choice(state_name, master_list_df)
-        if not district_name:
-            print("Invalid district. Restarting selection...")
-            continue
-
+        # Step 1: Choose dataset first
         file_choice = get_dataset_choice(list(datasets.keys()))
         if not file_choice:
             print("Invalid dataset. Restarting selection...")
             continue
 
         chosen_dataset_df = datasets[file_choice]
+        
+        # Step 2: Choose state (using selected dataset)
+        dataset_states = chosen_dataset_df['State Name'].unique()
+        state_name = get_state_choice(dataset_states)
+        if not state_name:
+            print("Invalid state. Restarting selection...")
+            continue
+
+        # Step 3: Choose district (using selected dataset and state)
+        district_name = get_district_choice(state_name, chosen_dataset_df)
+        if not district_name:
+            print("Invalid district. Restarting selection...")
+            continue
+
+        # Step 4: Choose crime type (using selected dataset)
         crime_choice = get_crime_choice(chosen_dataset_df)
         if not crime_choice:
             print("Invalid crime type. Restarting selection...")
@@ -603,8 +796,10 @@ def main():
         print("3. Compare multiple districts (same crime, line plot)")
         print("4. Show descriptive statistics")
         print("5. Compare all districts (Total crime, bar chart)")
-        print("6. Identify top N district hotspots") # *** ADDED ***
-        action = input("Enter choice (1/2/3/4/5/6): ").strip() # *** UPDATED ***
+        print("6. Identify top N district hotspots")
+        print("7. 🆚 Compare different dataset types (IPC vs Cyber vs Women crimes, etc.)")
+        print("8. 🌍 Cross-state dataset comparison")
+        action = input("Enter choice (1/2/3/4/5/6/7/8): ").strip()
 
         if action == "1":
             plot_trends(selected_data, state_name, district_name, crime_choice)
@@ -710,6 +905,30 @@ def main():
             
             # Call the new hotspot function
             show_crime_hotspots(state_data, state_name, new_crime)
+
+        # *** NEW ACTION: Cross-Dataset Comparison (Action 7) ***
+        elif action == "7":
+            print("\n🆚 CROSS-DATASET COMPARISON")
+            print("This will compare different dataset types (IPC vs Cyber vs Women crimes, etc.)")
+            print("for the same location you selected.")
+            
+            confirmation = input(f"\nProceed with cross-dataset comparison for {location_desc}? (y/n): ").strip().lower()
+            if confirmation in ['y', 'yes']:
+                compare_dataset_types(datasets, state_name, district_name, location_desc)
+            else:
+                print("Cross-dataset comparison cancelled.")
+
+        # *** NEW ACTION: Cross-State Comparison (Action 8) ***
+        elif action == "8":
+            print("\n🌍 CROSS-STATE COMPARISON")
+            print(f"This will compare the same crime type ({crime_choice}) across different states")
+            print(f"using the {file_choice} dataset.")
+            
+            confirmation = input(f"\nProceed with cross-state comparison of {crime_choice}? (y/n): ").strip().lower()
+            if confirmation in ['y', 'yes']:
+                compare_states_datasets(datasets, file_choice, crime_choice)
+            else:
+                print("Cross-state comparison cancelled.")
 
         else:
             print("Invalid choice. Showing single-plot by default.")
