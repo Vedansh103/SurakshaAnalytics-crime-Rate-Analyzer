@@ -1,0 +1,49 @@
+Improvements made:
+
+DONE<<  1.Adding comparisons : Compare Multiple Crimes
+                       Compare Multiple Districts                   
+                       Add Descriptive Statistics
+                       Use Seaborn instead of matplotlib
+                      
+
+DONE<<  2.Adding Multiple Analysis: Wraping the  entire code (from "Enter state name:")
+                            in a while True: loop. At the very end, ask Perform 
+                            another analysis? (yes/no):. If the user types "no",
+                             use break to exit the loop.
+
+
+DONE<<  3.Adding an all Option : If the user selects "All", you would group the data by 
+                         Year and District Name instead of just filtering for 
+                         one district.
+                         This would let a user compare all districts in a state 
+                         at once, perhaps in a bar chart showing the total crime 
+                         for each district.
+
+
+DONE<<  4.Error handling: Use try...except blocks. For example, wrap the file loading 
+                  (pd.read_csv) in a try...except FileNotFoundError: block. 
+                  Wrap the user's number input (int(crime_choice)) in a 
+                  try...except ValueError: block.
+
+
+DONE<<  5.Refactor into Functions: script is one long procedure.       
+                           Break it into reusable functions like: 
+                           load_datasets(), get_state_choice(states), 
+                           get_district_choice(state, data), get_crime_choice(dataset), 
+                           plot_trends(data, title), A main() function to call all the others.
+
+
+DONE<<  6. Data Cleaning functions: 
+
+DONE<<  7. Identify Hotspots : For example, you would need to find the top 5 districts in a state with the highest 
+                       rate of a particular crime.
+
+
+
+8.Advanced: Predictive Model: It does not contain any Predictive Analysis 
+                              (forecasting what will happen in the future). 
+                              This would require using libraries like scikit-learn 
+                              or statsmodels to build a forecasting model based on the historical data.
+
+                        
+10.Build a Web App
