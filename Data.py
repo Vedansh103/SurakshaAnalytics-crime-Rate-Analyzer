@@ -20,6 +20,11 @@ import warnings
 import sys
 import os
 from pathlib import Path
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.offline as pyo
+from scipy.stats import pearsonr
 
 # Seaborn defaults
 sns.set(style="whitegrid", palette="deep")
@@ -954,6 +959,318 @@ def show_crime_hotspots(data, state, crime):
     print(top_n_districts)
 
 
+# *** ENHANCED VISUALIZATION FUNCTIONS ***
+
+def plot_pie_chart_crime_distribution(data, state_name, district_name="all", top_n=10):
+    """
+    3. Pie/Donut Charts (Crime Type Distribution)
+    Shows the percentage share of different crime categories.
+    """
+    if data.empty:
+        print("No data available for pie chart.")
+        return
+    
+    # Get crime columns
+    crime_columns = [col for col in data.columns if col not in 
+                    ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    
+    if not crime_columns:
+        print("No crime data found for pie chart.")
+        return
+    
+    # Calculate totals for each crime type
+    crime_totals = data[crime_columns].sum().sort_values(ascending=False)
+    
+    # Get top N crimes to avoid overcrowding
+    if len(crime_totals) > top_n:
+        top_crimes = crime_totals.head(top_n)
+        other_total = crime_totals.iloc[top_n:].sum()
+        if other_total > 0:
+            top_crimes['Others'] = other_total
+    else:
+        top_crimes = crime_totals
+    
+    # Remove zero values
+    top_crimes = top_crimes[top_crimes > 0]
+    
+    if top_crimes.empty:
+        print("No crimes with non-zero values found.")
+        return
+    
+    # Create pie chart
+    location_desc = f"{district_name}, {state_name}" if district_name != "all" else f"All Districts in {state_name}"
+    
+    fig = px.pie(
+        values=top_crimes.values,
+        names=top_crimes.index,
+        title=f'🥧 Crime Distribution in {location_desc}<br>Top {min(top_n, len(crime_totals))} Crime Types',
+        hole=0.4,  # Creates donut chart
+        color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_layout(
+        showlegend=True,
+        height=600,
+        font=dict(size=12)
+    )
+    
+    fig.show()
+    print(f"✅ Pie chart generated for {location_desc}")
+
+
+def plot_crime_heatmap(data, state_name, district_name="all", method='correlation'):
+    """
+    4. Heatmaps (Correlation Between Crimes)
+    Helps identify crime patterns, correlation, and hotspots within datasets.
+    """
+    if data.empty:
+        print("No data available for heatmap.")
+        return
+    
+    # Get crime columns
+    crime_columns = [col for col in data.columns if col not in 
+                    ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    
+    if len(crime_columns) < 2:
+        print("Need at least 2 crime types for correlation heatmap.")
+        return
+    
+    crime_data = data[crime_columns]
+    location_desc = f"{district_name}, {state_name}" if district_name != "all" else f"All Districts in {state_name}"
+    
+    if method == 'correlation':
+        # Correlation heatmap
+        corr_matrix = crime_data.corr()
+        
+        fig = px.imshow(
+            corr_matrix,
+            text_auto=True,
+            aspect="auto",
+            title=f'🔥 Crime Correlation Heatmap - {location_desc}',
+            color_continuous_scale='RdYlBu_r',
+            zmin=-1, zmax=1
+        )
+        
+        fig.update_layout(
+            height=600,
+            font=dict(size=10)
+        )
+        
+    else:
+        # Crime density heatmap by year
+        if 'Year' in data.columns:
+            yearly_data = data.groupby('Year')[crime_columns].sum()
+            
+            fig = px.imshow(
+                yearly_data.T,
+                text_auto=True,
+                aspect="auto",
+                title=f'🔥 Crime Density Heatmap by Year - {location_desc}',
+                labels=dict(x="Year", y="Crime Type", color="Cases"),
+                color_continuous_scale='Reds'
+            )
+        else:
+            print("No Year column found for density heatmap.")
+            return
+    
+    fig.show()
+    print(f"✅ Heatmap generated for {location_desc}")
+
+
+def plot_stacked_bar_chart(data, state_name, district_name="all", top_crimes=8):
+    """
+    5. Stacked Bar Charts (Year vs Crime Category)
+    Shows how different crime types contribute each year.
+    """
+    if data.empty or 'Year' not in data.columns:
+        print("No data or Year column available for stacked bar chart.")
+        return
+    
+    # Get crime columns
+    crime_columns = [col for col in data.columns if col not in 
+                    ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    
+    # Get top crimes by total volume
+    crime_totals = data[crime_columns].sum().sort_values(ascending=False)
+    top_crime_cols = crime_totals.head(top_crimes).index.tolist()
+    
+    # Group by year and sum
+    yearly_data = data.groupby('Year')[top_crime_cols].sum().reset_index()
+    
+    location_desc = f"{district_name}, {state_name}" if district_name != "all" else f"All Districts in {state_name}"
+    
+    # Create stacked bar chart
+    fig = go.Figure()
+    
+    colors = px.colors.qualitative.Set3
+    
+    for i, crime in enumerate(top_crime_cols):
+        fig.add_trace(go.Bar(
+            x=yearly_data['Year'],
+            y=yearly_data[crime],
+            name=crime[:30] + "..." if len(crime) > 30 else crime,
+            marker_color=colors[i % len(colors)]
+        ))
+    
+    fig.update_layout(
+        barmode='stack',
+        title=f'📊 Stacked Crime Trends by Year - {location_desc}<br>Top {top_crimes} Crime Types',
+        xaxis_title='Year',
+        yaxis_title='Number of Cases',
+        height=600,
+        showlegend=True,
+        font=dict(size=12)
+    )
+    
+    fig.show()
+    print(f"✅ Stacked bar chart generated for {location_desc}")
+
+
+def plot_interactive_crime_dashboard(datasets, selected_dataset_key):
+    """
+    7. Interactive Dashboards with filters
+    Allows users to explore the data dynamically.
+    """
+    if selected_dataset_key not in datasets:
+        print("Invalid dataset selected.")
+        return
+    
+    data = datasets[selected_dataset_key]
+    
+    # Get available options
+    states = sorted(data['State Name'].unique()) if 'State Name' in data.columns else []
+    years = sorted(data['Year'].unique()) if 'Year' in data.columns else []
+    crime_columns = [col for col in data.columns if col not in 
+                    ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    
+    print(f"\n🎛️ INTERACTIVE DASHBOARD - {selected_dataset_key}")
+    print("="*60)
+    print("Available filters:")
+    print(f"📍 States: {len(states)} available")
+    print(f"📅 Years: {min(years) if years else 'N/A'} - {max(years) if years else 'N/A'}")
+    print(f"🚨 Crime Types: {len(crime_columns)} available")
+    
+    # Simple interactive selection
+    print("\n🎯 Create your custom analysis:")
+    
+    # State filter
+    print(f"\nAvailable states: {', '.join(states[:10])}{'...' if len(states) > 10 else ''}")
+    selected_state = input("Enter state name (or press Enter for all): ").strip()
+    if selected_state and selected_state in states:
+        filtered_data = data[data['State Name'] == selected_state]
+        print(f"✅ Filtered to: {selected_state}")
+    else:
+        filtered_data = data
+        selected_state = "All States"
+        print("✅ Using all states")
+    
+    # Year filter
+    if years:
+        year_choice = input(f"Enter year range (e.g., '{min(years)}-{max(years)}') or press Enter for all: ").strip()
+        if year_choice and '-' in year_choice:
+            try:
+                start_year, end_year = map(int, year_choice.split('-'))
+                filtered_data = filtered_data[
+                    (filtered_data['Year'] >= start_year) & 
+                    (filtered_data['Year'] <= end_year)
+                ]
+                print(f"✅ Filtered to years: {start_year}-{end_year}")
+            except:
+                print("✅ Using all years")
+        else:
+            print("✅ Using all years")
+    
+    # Crime type filter
+    print(f"\nTop 10 crime types: {', '.join(crime_columns[:10])}")
+    crime_choice = input("Enter crime types (comma-separated) or press Enter for top 5: ").strip()
+    
+    if crime_choice:
+        selected_crimes = [c.strip() for c in crime_choice.split(',')]
+        selected_crimes = [c for c in selected_crimes if c in crime_columns]
+    else:
+        # Default to top 5 by total volume
+        crime_totals = filtered_data[crime_columns].sum().sort_values(ascending=False)
+        selected_crimes = crime_totals.head(5).index.tolist()
+    
+    print(f"✅ Selected crimes: {selected_crimes}")
+    
+    # Generate visualization
+    print("\n📊 Choose visualization type:")
+    print("1. Line trends")
+    print("2. Pie distribution") 
+    print("3. Correlation heatmap")
+    print("4. Stacked bars")
+    
+    viz_choice = input("Enter choice (1-4): ").strip()
+    
+    if viz_choice == "1":
+        # Line trends
+        yearly_data = filtered_data.groupby('Year')[selected_crimes].sum().reset_index()
+        
+        fig = px.line(
+            yearly_data.melt(id_vars=['Year'], var_name='Crime Type', value_name='Cases'),
+            x='Year',
+            y='Cases',
+            color='Crime Type',
+            title=f'📈 Interactive Crime Trends - {selected_state}',
+            markers=True
+        )
+        fig.show()
+        
+    elif viz_choice == "2":
+        plot_pie_chart_crime_distribution(filtered_data, selected_state, "Dashboard")
+        
+    elif viz_choice == "3":
+        plot_crime_heatmap(filtered_data, selected_state, "Dashboard")
+        
+    elif viz_choice == "4":
+        plot_stacked_bar_chart(filtered_data, selected_state, "Dashboard")
+    
+    print("✅ Interactive dashboard completed!")
+
+
+def plot_india_crime_map(data, crime_type, title_suffix=""):
+    """
+    6. Crime Hotspot Map of India (Optional but Powerful)
+    A geographical map showing crime density across states.
+    """
+    if data.empty:
+        print("No data available for map visualization.")
+        return
+    
+    # Aggregate by state
+    if 'State Name' not in data.columns or crime_type not in data.columns:
+        print("Required columns not found for map visualization.")
+        return
+    
+    state_data = data.groupby('State Name')[crime_type].sum().reset_index()
+    state_data = state_data[state_data[crime_type] > 0].sort_values(crime_type, ascending=False)
+    
+    if state_data.empty:
+        print("No crime data found for mapping.")
+        return
+    
+    # Create choropleth map (simplified version)
+    fig = px.bar(
+        state_data.head(15),  # Top 15 states
+        x=crime_type,
+        y='State Name',
+        orientation='h',
+        title=f'🗺️ Crime Hotspot Map: {crime_type}{title_suffix}<br>Top 15 States by Total Cases',
+        color=crime_type,
+        color_continuous_scale='Reds'
+    )
+    
+    fig.update_layout(
+        height=600,
+        yaxis={'categoryorder':'total ascending'}
+    )
+    
+    fig.show()
+    print(f"✅ Crime hotspot map generated for {crime_type}")
+
+
 # *** NEW FUNCTIONS: Cross-Dataset Comparison ***
 def compare_dataset_types(datasets, state_name, district_name, location_desc):
     """
@@ -1553,13 +1870,14 @@ def get_main_analysis_choice():
     print("6. Top hotspots")
     print("7. Compare dataset types")
     print("8. Cross-state comparison")
+    print("9. 🎨 Enhanced Visualizations (Pie, Heatmap, Interactive)")
     
     while True:
-        choice = input("\nEnter your choice (1-8): ").strip()
-        if choice in ['1', '2', '3', '4', '5', '6', '7', '8']:
+        choice = input("\nEnter your choice (1-9): ").strip()
+        if choice in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
             return choice
         else:
-            print("❌ Invalid choice. Please enter 1-8.")
+            print("❌ Invalid choice. Please enter 1-9.")
 
 
 def handle_option_1_single_trend(datasets):
@@ -1951,6 +2269,8 @@ def main():
             result = handle_option_7_compare_datasets(datasets)
         elif choice == '8':
             result = handle_option_8_cross_state(datasets)
+        elif choice == '9':
+            result = handle_option_9_enhanced_visualizations(datasets)
         
         if not result:
             print("\n❌ Analysis failed or was cancelled. Please try again.")
@@ -1963,6 +2283,152 @@ def main():
             break
         else:
             print("\nStarting new analysis...\n")
+
+
+def handle_option_9_enhanced_visualizations(datasets):
+    """Option 9: Enhanced Visualizations (Pie, Heatmap, Interactive, etc.)"""
+    print("\n🎨 ENHANCED VISUALIZATIONS")
+    print("="*50)
+    
+    # 1️⃣ Choose dataset
+    print("1️⃣ Which dataset do you want to visualize?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Choose location
+    print("2️⃣ Select location for analysis:")
+    state_name = get_state_choice(chosen_dataset_df['State Name'].unique())
+    if not state_name:
+        return False
+    
+    # Get districts in the state
+    state_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+    district_name = get_district_choice(state_name, chosen_dataset_df)
+    if not district_name:
+        return False
+    
+    # Filter data
+    if district_name == 'all':
+        selected_data = state_data
+        location_desc = f"All Districts in {state_name}"
+    else:
+        selected_data = state_data[state_data['District Name'] == district_name]
+        location_desc = f"{district_name}, {state_name}"
+    
+    # 3️⃣ Choose visualization type
+    print(f"\n3️⃣ Choose visualization type for {location_desc}:")
+    print("1. 🥧 Pie/Donut Chart (Crime Distribution)")
+    print("2. 🔥 Heatmap (Crime Correlations)")
+    print("3. 📊 Stacked Bar Chart (Year vs Crime)")
+    print("4. 🗺️ Hotspot Map (Top States)")
+    print("5. 🎛️ Interactive Dashboard")
+    print("6. 📈 Enhanced Line Chart (Plotly)")
+    print("7. 🎯 All Visualizations")
+    
+    viz_choice = input("Enter choice (1-7): ").strip()
+    
+    try:
+        if viz_choice == "1":
+            plot_pie_chart_crime_distribution(selected_data, state_name, district_name)
+        elif viz_choice == "2":
+            plot_crime_heatmap(selected_data, state_name, district_name)
+        elif viz_choice == "3":
+            plot_stacked_bar_chart(selected_data, state_name, district_name)
+        elif viz_choice == "4":
+            # For hotspot map, use full dataset
+            crime_columns = [col for col in chosen_dataset_df.columns if col not in 
+                           ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+            if crime_columns:
+                print("Available crime types for mapping:")
+                for i, crime in enumerate(crime_columns[:10], 1):
+                    print(f"{i}. {crime}")
+                crime_choice = input("Enter crime number or name: ").strip()
+                
+                if crime_choice.isdigit() and 1 <= int(crime_choice) <= len(crime_columns):
+                    selected_crime = crime_columns[int(crime_choice) - 1]
+                elif crime_choice in crime_columns:
+                    selected_crime = crime_choice
+                else:
+                    selected_crime = crime_columns[0]  # Default to first
+                
+                plot_india_crime_map(chosen_dataset_df, selected_crime)
+            else:
+                print("No crime data available for mapping.")
+        elif viz_choice == "5":
+            plot_interactive_crime_dashboard(datasets, file_choice)
+        elif viz_choice == "6":
+            # Enhanced line chart
+            crime_columns = [col for col in selected_data.columns if col not in 
+                           ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+            
+            crimes = enhanced_crime_selection_prompt(crime_columns, max_select=5, context="crimes for trend analysis")
+            if crimes and 'Year' in selected_data.columns:
+                yearly_data = selected_data.groupby('Year')[crimes].sum().reset_index()
+                
+                fig = px.line(
+                    yearly_data.melt(id_vars=['Year'], var_name='Crime Type', value_name='Cases'),
+                    x='Year',
+                    y='Cases',
+                    color='Crime Type',
+                    title=f'📈 Enhanced Crime Trends - {location_desc}',
+                    markers=True,
+                    line_shape='spline'
+                )
+                
+                fig.update_layout(
+                    height=600,
+                    hovermode='x unified'
+                )
+                
+                fig.show()
+                print("✅ Enhanced line chart generated!")
+            else:
+                print("No crimes selected or Year column not available.")
+        elif viz_choice == "7":
+            # All visualizations
+            print("\n🎨 Generating all visualizations...")
+            
+            plot_pie_chart_crime_distribution(selected_data, state_name, district_name)
+            plot_crime_heatmap(selected_data, state_name, district_name)
+            plot_stacked_bar_chart(selected_data, state_name, district_name)
+            
+            # Simple enhanced line chart
+            crime_columns = [col for col in selected_data.columns if col not in 
+                           ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+            
+            if crime_columns and 'Year' in selected_data.columns:
+                # Use top 3 crimes for the line chart
+                crime_totals = selected_data[crime_columns].sum().sort_values(ascending=False)
+                top_crimes = crime_totals.head(3).index.tolist()
+                
+                yearly_data = selected_data.groupby('Year')[top_crimes].sum().reset_index()
+                
+                fig = px.line(
+                    yearly_data.melt(id_vars=['Year'], var_name='Crime Type', value_name='Cases'),
+                    x='Year',
+                    y='Cases',
+                    color='Crime Type',
+                    title=f'📈 Top 3 Crime Trends - {location_desc}',
+                    markers=True
+                )
+                
+                fig.show()
+            
+            print("✅ All visualizations completed!")
+        else:
+            print("❌ Invalid choice. Please select 1-7.")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error generating visualization: {str(e)}")
+        print("This might be due to missing data or Plotly not being installed.")
+        print("Install Plotly with: pip install plotly")
+        return False
 
 
 if __name__ == "__main__":
