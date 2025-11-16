@@ -306,7 +306,7 @@ def parse_multiple_selection(user_input, available_list, allow_all=True):
     """
     Parse a user_input string for multiple selections.
     - user_input can be comma-separated numbers (1-based), comma-separated names (partial or exact),
-      or the word 'all' to select everything (if allow_all True).
+    or the word 'all' to select everything (if allow_all True).
     - available_list is a list of available values (strings). Comparison is case-insensitive.
     Returns a list of matched available_list values (exact strings from available_list, in original form).
     
@@ -337,10 +337,6 @@ def parse_multiple_selection(user_input, available_list, allow_all=True):
             # Not a number, pass through to name logic
             pass
         
-<<<<<<< HEAD
-    elif not crime_choice:
-        pass# Error already printed above
-=======
         # --- Name logic (only runs if ValueError occurred) ---
         p_lower = p.lower()
         # try exact case-insensitive match
@@ -776,7 +772,6 @@ def safe_input_list(prompt, available_values=None, to_lower=True, allow_all=True
             return []
         items = [i.strip().lower() if to_lower else i.strip() for i in raw.split(",") if i.strip()]
         return items
->>>>>>> 6967a92c7ccab432bbb9166d9fac7c89c03c5224
     else:
         return parse_multiple_selection(raw, list(available_values), allow_all=allow_all)
 
