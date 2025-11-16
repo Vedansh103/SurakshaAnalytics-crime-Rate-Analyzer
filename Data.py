@@ -256,12 +256,73 @@ def get_dataset_choice(dataset_names):
     return None
 
 
+def categorize_crimes(crime_columns):
+    """
+    Categorize crimes into logical groups for better user experience.
+    """
+    categories = {
+        'Violent Crimes': [],
+        'Property Crimes': [],
+        'Cyber Crimes': [],
+        'Women & Children': [],
+        'Drug & Substance': [],
+        'Economic Crimes': [],
+        'Public Order': [],
+        'Traffic & Vehicle': [],
+        'Other Crimes': []
+    }
+    
+    # Define keywords for each category
+    violent_keywords = ['murder', 'homicide', 'assault', 'hurt', 'rape', 'acid', 'attack', 'violence', 'kidnapping', 'abduction']
+    property_keywords = ['theft', 'burglary', 'robbery', 'dacoity', 'extortion', 'trespass', 'mischief', 'arson']
+    cyber_keywords = ['cyber', 'computer', 'electronic', 'online', 'internet', 'digital', 'atm', 'credit card', 'debit card']
+    women_children_keywords = ['women', 'child', 'minor', 'girl', 'dowry', 'modesty', 'sexual', 'trafficking', 'prostitution', 'pocso']
+    drug_keywords = ['drug', 'narcotic', 'substance', 'ndps', 'alcohol', 'liquor']
+    economic_keywords = ['fraud', 'cheating', 'forgery', 'counterfeit', 'bank', 'financial', 'money', 'corruption']
+    public_order_keywords = ['rioting', 'unlawful', 'assembly', 'sedition', 'public', 'tranquility', 'enmity']
+    traffic_keywords = ['vehicle', 'driving', 'traffic', 'rash', 'negligent', 'hit and run', 'motor']
+    
+    for crime in crime_columns:
+        crime_lower = crime.lower()
+        categorized = False
+        
+        # Check each category
+        if any(keyword in crime_lower for keyword in violent_keywords):
+            categories['Violent Crimes'].append(crime)
+            categorized = True
+        elif any(keyword in crime_lower for keyword in property_keywords):
+            categories['Property Crimes'].append(crime)
+            categorized = True
+        elif any(keyword in crime_lower for keyword in cyber_keywords):
+            categories['Cyber Crimes'].append(crime)
+            categorized = True
+        elif any(keyword in crime_lower for keyword in women_children_keywords):
+            categories['Women & Children'].append(crime)
+            categorized = True
+        elif any(keyword in crime_lower for keyword in drug_keywords):
+            categories['Drug & Substance'].append(crime)
+            categorized = True
+        elif any(keyword in crime_lower for keyword in economic_keywords):
+            categories['Economic Crimes'].append(crime)
+            categorized = True
+        elif any(keyword in crime_lower for keyword in public_order_keywords):
+            categories['Public Order'].append(crime)
+            categorized = True
+        elif any(keyword in crime_lower for keyword in traffic_keywords):
+            categories['Traffic & Vehicle'].append(crime)
+            categorized = True
+        
+        if not categorized:
+            categories['Other Crimes'].append(crime)
+    
+    # Remove empty categories
+    return {k: v for k, v in categories.items() if v}
+
+
 def get_crime_choice(dataset):
     """
-    Prompts the user to select a single crime type from the chosen dataset.
+    Enhanced crime selection with categorization for better user experience.
     Returns chosen crime column name or None.
-    
-    UPDATED: Uses try...except ValueError for numeric input.
     """
     crime_columns = [col for col in dataset.columns if col not in 
                      ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
@@ -269,11 +330,113 @@ def get_crime_choice(dataset):
         print("No crime-specific columns found in this dataset.")
         return None
     
+    # Handle datasets with many crimes using categories
+    if len(crime_columns) > 20:
+        print(f"\n📊 This dataset has {len(crime_columns)} crime types. Choose selection method:")
+        print("1. Browse by Category (Recommended)")
+        print("2. Search by Name")
+        print("3. Show All (Full List)")
+        
+        method = input("Enter choice (1/2/3): ").strip()
+        
+        if method == "1":
+            return get_crime_by_category(crime_columns)
+        elif method == "2":
+            return get_crime_by_search(crime_columns)
+        elif method == "3":
+            return get_crime_from_full_list(crime_columns)
+        else:
+            print("Invalid choice, using category browsing...")
+            return get_crime_by_category(crime_columns)
+    else:
+        # For smaller datasets, show full list
+        return get_crime_from_full_list(crime_columns)
+
+
+def get_crime_by_category(crime_columns):
+    """Select crime by browsing categories."""
+    categories = categorize_crimes(crime_columns)
+    
+    print(f"\n🗂️ CRIME CATEGORIES ({len(crime_columns)} total crimes):")
+    category_list = list(categories.keys())
+    
+    for i, (category, crimes) in enumerate(categories.items(), 1):
+        print(f"{i}. {category} ({len(crimes)} crimes)")
+    
+    while True:
+        cat_choice = input(f"\nChoose category (1-{len(category_list)}): ").strip()
+        try:
+            cat_index = int(cat_choice) - 1
+            if 0 <= cat_index < len(category_list):
+                selected_category = category_list[cat_index]
+                crimes_in_category = categories[selected_category]
+                
+                print(f"\n📋 {selected_category} ({len(crimes_in_category)} crimes):")
+                for i, crime in enumerate(crimes_in_category, 1):
+                    print(f"{i:2d}. {crime}")
+                
+                crime_choice = input(f"\nEnter crime number (1-{len(crimes_in_category)}): ").strip()
+                try:
+                    crime_index = int(crime_choice) - 1
+                    if 0 <= crime_index < len(crimes_in_category):
+                        return crimes_in_category[crime_index]
+                    else:
+                        print(f"Invalid number. Choose between 1 and {len(crimes_in_category)}.")
+                except ValueError:
+                    print("Please enter a valid number.")
+            else:
+                print(f"Invalid category. Choose between 1 and {len(category_list)}.")
+        except ValueError:
+            print("Please enter a valid number.")
+
+
+def get_crime_by_search(crime_columns):
+    """Select crime by searching."""
+    while True:
+        search_term = input("\n🔍 Enter search term (crime name or keyword): ").strip().lower()
+        if not search_term:
+            print("Please enter a search term.")
+            continue
+        
+        matching_crimes = [c for c in crime_columns if search_term in c.lower()]
+        
+        if not matching_crimes:
+            print(f"No crimes found matching '{search_term}'. Try different keywords.")
+            retry = input("Try again? (y/n): ").strip().lower()
+            if retry != 'y':
+                return None
+            continue
+        
+        print(f"\n📋 Found {len(matching_crimes)} matching crimes:")
+        for i, crime in enumerate(matching_crimes, 1):
+            print(f"{i:2d}. {crime}")
+        
+        if len(matching_crimes) == 1:
+            confirm = input(f"Select '{matching_crimes[0]}'? (y/n): ").strip().lower()
+            if confirm == 'y':
+                return matching_crimes[0]
+        else:
+            choice = input(f"Enter number (1-{len(matching_crimes)}) or search again (s): ").strip()
+            if choice.lower() == 's':
+                continue
+            
+            try:
+                crime_index = int(choice) - 1
+                if 0 <= crime_index < len(matching_crimes):
+                    return matching_crimes[crime_index]
+                else:
+                    print(f"Invalid number. Choose between 1 and {len(matching_crimes)}.")
+            except ValueError:
+                print("Invalid input. Enter a number or 's' to search again.")
+
+
+def get_crime_from_full_list(crime_columns):
+    """Select from full list (for smaller datasets or user preference)."""
     print(f"\nAvailable crime types ({len(crime_columns)} total):")
     for i, crime in enumerate(crime_columns, 1):
-        print(f"{i}. {crime}")
+        print(f"{i:2d}. {crime}")
     
-    crime_choice = input("\nEnter crime type (number or name): ").strip()
+    crime_choice = input(f"\nEnter crime type (1-{len(crime_columns)} or name): ").strip()
     if not crime_choice:
         print("No input provided.")
         return None
@@ -360,6 +523,223 @@ def parse_multiple_selection(user_input, available_list, allow_all=True):
             final.append(r)
             seen.add(r)
     return final
+
+
+def get_crime_suggestions(available_crimes, category=None):
+    """Get smart crime suggestions based on category or popularity."""
+    if category:
+        categories = categorize_crimes(available_crimes)
+        if category in categories:
+            return categories[category][:10]  # Top 10 from category
+    
+    # Popular crime suggestions
+    popular_keywords = [
+        'murder', 'rape', 'theft', 'burglary', 'robbery', 'kidnapping',
+        'cyber', 'fraud', 'dowry', 'acid attack', 'assault', 'domestic violence',
+        'drug', 'trafficking', 'extortion', 'cheating'
+    ]
+    
+    suggestions = []
+    crime_lower = [c.lower() for c in available_crimes]
+    
+    for keyword in popular_keywords:
+        matches = [available_crimes[i] for i, c in enumerate(crime_lower) 
+                  if keyword in c and available_crimes[i] not in suggestions]
+        suggestions.extend(matches[:2])  # Max 2 per keyword
+        if len(suggestions) >= 15:
+            break
+    
+    return suggestions
+
+
+def enhanced_crime_selection_prompt(available_crimes, max_select=5, context="crimes"):
+    """Enhanced helper for crime selection with smart features."""
+    if not available_crimes:
+        return []
+    
+    print(f"\n🎯 SELECT {context.upper()} ({len(available_crimes)} available)")
+    
+    # Show different options based on list size
+    if len(available_crimes) > 20:
+        print(f"\n📚 This dataset has many crime types. Choose selection method:")
+        print("1. 🔥 Quick picks (popular crimes)")
+        print("2. 📂 Browse by category") 
+        print("3. 🔍 Search & select")
+        print("4. 📋 Show full list")
+        print("5. ✅ Select ALL crimes")
+        
+        method = input("Choose method (1-5): ").strip()
+        
+        if method == "1":
+            suggestions = get_crime_suggestions(available_crimes)
+            if suggestions:
+                print(f"\n⭐ POPULAR {context.upper()}:")
+                for i, crime in enumerate(suggestions, 1):
+                    print(f"{i:2d}. {crime}")
+                
+                print(f"\n💡 Select up to {max_select} (examples: '1,3,5' or '1-3' or 'murder,theft' or 'all')")
+                selection = input("Your selection: ").strip()
+                if selection.lower() in ['all', '*']:
+                    print(f"✅ Selected ALL {len(suggestions)} popular crimes!")
+                    return suggestions.copy()
+                return parse_multiple_selection(selection, suggestions, False)
+        
+        elif method == "2":
+            return select_by_category_method(available_crimes, max_select)
+        
+        elif method == "3":
+            return select_by_search_method(available_crimes, max_select)
+        
+        elif method == "5":
+            confirm = input(f"🚨 Select ALL {len(available_crimes)} crimes? This may create a very busy plot! (y/n): ").strip().lower()
+            if confirm == 'y':
+                print(f"✅ Selected ALL {len(available_crimes)} crimes!")
+                return available_crimes.copy()
+            else:
+                print("❌ Selection cancelled.")
+                return []
+    
+    # Default: show full list for smaller datasets
+    return show_full_list_selection(available_crimes, max_select, context)
+
+
+def select_by_category_method(available_crimes, max_select):
+    """Select crimes by browsing categories."""
+    categories = categorize_crimes(available_crimes)
+    
+    print(f"\n🗂️ CRIME CATEGORIES:")
+    cat_list = list(categories.keys())
+    for i, (cat, crimes) in enumerate(categories.items(), 1):
+        print(f"{i}. {cat} ({len(crimes)} crimes)")
+    print(f"{len(cat_list)+1}. ✅ SELECT ALL CRIMES ({len(available_crimes)} total)")
+    
+    selected = []
+    while len(selected) < max_select:
+        try:
+            cat_choice = input(f"\nChoose category (1-{len(cat_list)+1}) or 'done': ").strip()
+            if cat_choice.lower() == 'done':
+                break
+            
+            cat_idx = int(cat_choice) - 1
+            
+            # Handle "Select All" option
+            if cat_idx == len(cat_list):
+                confirm = input(f"🚨 Select ALL {len(available_crimes)} crimes? (y/n): ").strip().lower()
+                if confirm == 'y':
+                    print(f"✅ Selected ALL {len(available_crimes)} crimes!")
+                    return available_crimes.copy()
+                else:
+                    continue
+                    
+            if 0 <= cat_idx < len(cat_list):
+                cat_name = cat_list[cat_idx]
+                crimes_in_cat = categories[cat_name]
+                
+                print(f"\n📋 {cat_name} ({len(crimes_in_cat)} crimes):")
+                for i, crime in enumerate(crimes_in_cat, 1):
+                    print(f"{i:2d}. {crime}")
+                
+                remaining = max_select - len(selected)
+                print(f"\nSelect up to {remaining} crimes (e.g., '1,3' or '1-3'):")
+                selection = input("Selection: ").strip()
+                new_crimes = parse_multiple_selection(selection, crimes_in_cat, False)
+                
+                for crime in new_crimes:
+                    if crime not in selected and len(selected) < max_select:
+                        selected.append(crime)
+                        print(f"✅ Added: {crime}")
+                
+                if len(selected) >= max_select:
+                    break
+            else:
+                print("Invalid category number.")
+        except (ValueError, KeyboardInterrupt):
+            break
+    
+    return selected
+
+
+def select_by_search_method(available_crimes, max_select):
+    """Select crimes by searching."""
+    selected = []
+    
+    print(f"\n🔍 SEARCH & SELECT (up to {max_select} crimes)")
+    
+    while len(selected) < max_select:
+        search_term = input(f"\nSearch term (or 'done'): ").strip()
+        if search_term.lower() == 'done':
+            break
+        
+        matches = [c for c in available_crimes if search_term.lower() in c.lower() and c not in selected]
+        
+        if not matches:
+            print(f"❌ No matches for '{search_term}'")
+            continue
+        
+        print(f"\n📋 Found {len(matches)} matches:")
+        display_matches = matches[:15]  # Show top 15
+        for i, crime in enumerate(display_matches, 1):
+            print(f"{i:2d}. {crime}")
+        
+        if len(matches) > 15:
+            print(f"... and {len(matches)-15} more (refine search to see all)")
+        
+        remaining = max_select - len(selected)
+        selection = input(f"Select up to {remaining} (numbers or names): ").strip()
+        new_crimes = parse_multiple_selection(selection, display_matches, False)
+        
+        for crime in new_crimes:
+            if crime not in selected and len(selected) < max_select:
+                selected.append(crime)
+                print(f"✅ Added: {crime}")
+        
+        if len(selected) >= max_select:
+            break
+    
+    return selected
+
+
+def show_full_list_selection(available_crimes, max_select, context):
+    """Show full list for selection (optimized display)."""
+    print(f"\n📋 ALL AVAILABLE {context.upper()} ({len(available_crimes)} total):")
+    
+    # Display in organized format
+    if len(available_crimes) > 30:
+        # Two columns for large lists
+        for i in range(0, len(available_crimes), 2):
+            left = f"{i+1:2d}. {available_crimes[i]}"
+            right = f"{i+2:2d}. {available_crimes[i+1]}" if i+1 < len(available_crimes) else ""
+            print(f"{left:<45} {right}")
+    else:
+        # Single column for smaller lists
+        for i, crime in enumerate(available_crimes, 1):
+            print(f"{i:2d}. {crime}")
+    
+    print(f"\n💡 SELECTION TIPS:")
+    print(f"✓ Single: '1' or '{available_crimes[0][:25]}...'")
+    print(f"✓ Multiple: '1,3,5' or '1-3,8'")
+    print(f"✓ Names: 'murder,theft' (partial matching works)")
+    print(f"✓ All crimes: 'all' or '*'")
+    if max_select > 1:
+        print(f"✓ Max {max_select} selections (or 'all' for everything)")
+    
+    selection = input(f"\nYour selection: ").strip()
+    
+    # Handle "all" selection specially
+    if selection.lower() in ['all', '*']:
+        if len(available_crimes) <= max_select:
+            print(f"✅ Selected ALL {len(available_crimes)} crimes!")
+            return available_crimes.copy()
+        else:
+            confirm = input(f"⚠️  This will select ALL {len(available_crimes)} crimes (exceeds max {max_select}). Continue? (y/n): ").strip().lower()
+            if confirm == 'y':
+                print(f"✅ Selected ALL {len(available_crimes)} crimes!")
+                return available_crimes.copy()
+            else:
+                print("❌ Selection cancelled. Please choose specific crimes.")
+                return []
+    
+    return parse_multiple_selection(selection, available_crimes, max_select >= len(available_crimes))
 
 
 def show_descriptive_stats(df, crime_cols):
@@ -925,11 +1305,7 @@ def handle_single_location_analysis(datasets):
     elif action == "2":
         available_crimes = [c for c in chosen_dataset_df.columns if c not in 
                            ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
-        print("\nAvailable crimes:")
-        for i, c in enumerate(available_crimes, 1):
-            print(f"{i}. {c}")
-        crimes_input = input("Enter crimes (comma-separated numbers/names, or 'all'): ").strip()
-        crimes = parse_multiple_selection(crimes_input, available_crimes, allow_all=True)
+        crimes = enhanced_crime_selection_prompt(available_crimes, max_select=5, context="crimes for comparison")
         if crimes:
             compare_multiple_crimes(selected_data, crimes, state_name, district_name)
     elif action == "3":
@@ -1151,8 +1527,7 @@ def handle_statistical_analysis(datasets):
     for i, c in enumerate(available_crimes, 1):
         print(f"{i}. {c}")
     
-    crimes_input = input("Enter crimes for analysis (comma-separated numbers/names, or 'all'): ").strip()
-    crimes = parse_multiple_selection(crimes_input, available_crimes, allow_all=True)
+    crimes = enhanced_crime_selection_prompt(available_crimes, max_select=10, context="crimes for statistics")
     
     if not crimes:
         print("❌ No valid crimes selected")
@@ -1260,12 +1635,8 @@ def handle_option_2_multiple_crimes(datasets):
     print("3️⃣ Which crime types do you want to compare? (multi-select)")
     available_crimes = [c for c in chosen_dataset_df.columns if c not in 
                        ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
-    print("Available crimes:")
-    for i, c in enumerate(available_crimes, 1):
-        print(f"{i}. {c}")
     
-    crimes_input = input("Enter crimes (comma-separated numbers/names, or 'all'): ").strip()
-    crimes = parse_multiple_selection(crimes_input, available_crimes, allow_all=True)
+    crimes = enhanced_crime_selection_prompt(available_crimes, max_select=7, context="crimes for comparison")
     if not crimes:
         print("❌ No valid crimes selected")
         return False
@@ -1389,12 +1760,8 @@ def handle_option_4_descriptive_stats(datasets):
     print("3️⃣ Which crime types for statistics?")
     available_crimes = [c for c in chosen_dataset_df.columns if c not in 
                        ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
-    print("Available crimes:")
-    for i, c in enumerate(available_crimes, 1):
-        print(f"{i}. {c}")
     
-    crimes_input = input("Enter crimes (comma-separated numbers/names, or 'all'): ").strip()
-    crimes = parse_multiple_selection(crimes_input, available_crimes, allow_all=True)
+    crimes = enhanced_crime_selection_prompt(available_crimes, max_select=10, context="crimes for statistics")
     if not crimes:
         print("❌ No valid crimes selected")
         return False
