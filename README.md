@@ -1,20 +1,31 @@
-# Suraksha_Analytics
+# 🚀 Suraksha Analytics
 
-District-wise Crime Data Analysis (2017 onwards).
+**Comprehensive District-wise Crime Data Analysis Platform for India (2017-2022)**
 
-This repository contains data and analysis code for district-level crime statistics in India. It focuses on multiple crime datasets (IPC, crimes against women, cyber crimes, juvenile crimes, and missing-persons datasets) prepared for analysis and visualization.
+This repository provides advanced analytics tools for exploring crime patterns across Indian states and districts. Features include cross-dataset comparisons, interactive visualizations, and comprehensive exploratory data analysis (EDA) capabilities.
 
-## Repository structure (current snapshot)
+## ✨ Key Features
 
-Top-level files and folders:
+- 📊 **Interactive CLI Analysis** - Comprehensive command-line interface
+- 🆚 **Cross-Dataset Comparison** - Compare IPC vs Cyber vs Women crimes  
+- 🌍 **Multi-State Analysis** - Compare crime patterns across states
+- 📈 **Advanced Visualizations** - Seaborn-powered charts and trend analysis
+- 🔍 **Flexible Filtering** - By state, district, crime type, and time period
+- 🎯 **Hotspot Identification** - Find top crime districts and patterns
 
-- `Data.ipynb` — Jupyter notebook containing exploratory analysis and visualizations.
-- `Data.py` — Interactive script to query datasets by state/district and crime type. Loads CSVs from the `Dataset/` folder and prints selected rows.
-- `DataSet Merge.py` — Utility script added to merge or transform the missing-persons datasets (added upstream).
-- `Dataset/` — Folder with CSV dataset files (see list below).
-- `README.md` — This file (project overview and instructions).
-- `.cspell.json` — (editor-only) cSpell dictionary used to silence spelling warnings in VS Code for domain words like `districtwise`.
-- `LICENSE` — Project license file.
+## 📁 Repository Structure
+
+```
+Suraksha_Analytics/
+├── Data.py                           # 🚀 Main analysis tool (CLI interface)
+├── Dataset/                          # 📊 Crime datasets (CSV files)
+├── setup_validator.py                # 🔧 Environment validation tool
+├── requirements.txt                  # 📦 Python dependencies
+├── README.md                         # 📖 Setup and usage guide
+├── CROSS_DATASET_FEATURES.md        # 📋 Advanced features documentation
+├── MERGED_MISSING_PERSONS_UPDATE.md # 📄 Dataset optimization notes
+└── LICENSE                          # ⚖️ Project license
+```
 
 
 ### Files currently in `Dataset/` (examples from repo)
@@ -25,49 +36,100 @@ Top-level files and folders:
 - `districtwise-missing-persons-20172020-cleaned.csv`
 - `districtwise-missing-persons-2021-onwards-cleaned.csv`
 
-If you add or rename files inside `Dataset/`, update the mapping at the top of `Data.py` or the notebook cell that loads CSVs.
+If you add or rename files inside `Dataset/`, update the dataset_files mapping in the `load_datasets()` function in `Data.py`.
 
 
-## Quickstart — prerequisites
+## 🛠️ Quick Setup & Installation
 
-You need Python 3.8+ and the following pip packages (minimum):
+### Prerequisites
+- **Python 3.7+** (3.8+ recommended)
+- **Git** for cloning the repository
 
-- pandas
-- numpy
-- matplotlib
-- seaborn
+### 1. Clone the Repository
+```bash
+git clone https://github.com/mohvijayjain/Suraksha_Analytics.git
+cd Suraksha_Analytics
+```
 
-Install them with:
+### 2. Install Required Packages
 
-```powershell
+**Option A: Quick Install**
+```bash
+pip install -r requirements.txt
+```
+
+**Option B: Manual Install**
+```bash
 pip install pandas numpy matplotlib seaborn
 ```
 
-Optionally create a virtual environment first.
+**Option C: Virtual Environment (Recommended)**
+```bash
+# Create virtual environment
+python -m venv suraksha_env
 
+# Activate it
+# Windows:
+suraksha_env\Scripts\activate
+# Mac/Linux:
+source suraksha_env/bin/activate
 
-## How to run `Data.py` (interactive script)
-
-1. Open a terminal in the repository root (e.g., `e:\Surakshya Analytics`).
-2. Run the script:
-
-```powershell
-python "e:\Surakshya Analytics\Data.py"
+# Install packages
+pip install -r requirements.txt
 ```
 
-3. Follow the interactive prompts:
-- Enter a state (you can enter a name or the number from the printed list).
-- Choose a dataset by typing the dataset name or the number shown.
-- Choose a crime type by name or number.
+### 3. Verify Setup
+Run the setup validator to ensure everything is configured correctly:
+```bash
+python setup_validator.py
+```
 
-Notes:
-- The script will attempt to load the CSV files listed at the top of `Data.py`. If a file is missing, the script prints a warning and that dataset is unavailable.
-- The script normalizes column names (trims whitespace) and tries to detect the state column automatically (common column names: `State Name`, `State`, `state_name`). If the column name is different in your CSV, either rename the CSV columns or update the detection logic in `Data.py`.
+This will check:
+- ✅ Python version compatibility
+- ✅ Required packages installation  
+- ✅ Dataset files availability
+- ✅ Data loading functionality
+
+### 4. Test Run
+If setup validator passes, you're ready to run the analysis:
+```bash
+python Data.py
+```
 
 
-## How to run the notebook
+## 🚀 Usage Guide
 
-Open `Data.ipynb` in Jupyter or VS Code Jupyter and run cells interactively. The notebook contains exploratory analysis and visualizations. If you change dataset filenames, update the CSV paths in the notebook cells before running.
+### Interactive CLI Analysis (`Data.py`)
+
+The main script provides a comprehensive, step-by-step analysis workflow:
+
+```bash
+python Data.py
+```
+
+**Analysis Flow:**
+1. **📊 Choose Dataset** - Select from IPC, Women crimes, Cyber crimes, Juveniles, Missing persons
+2. **🗺️ Choose State** - Pick from available states in selected dataset  
+3. **🏘️ Choose District** - Select specific district or "all" for state-level analysis
+4. **🔍 Choose Crime Type** - Select from available crime categories
+5. **⚙️ Choose Analysis** - Pick from 8 analysis options:
+
+**Analysis Options:**
+- `1` **Single Crime Trend** - Time series analysis for selected crime
+- `2` **Multiple Crimes Comparison** - Compare different crimes in same location
+- `3` **Multi-District Comparison** - Same crime across different districts  
+- `4` **Descriptive Statistics** - Statistical summary of crime data
+- `5` **District Bar Chart** - Visual comparison of all districts in state
+- `6` **Crime Hotspots** - Identify top N districts by crime count
+- `7` **🆚 Cross-Dataset Comparison** - Compare IPC vs Cyber vs Women crimes
+- `8` **🌍 Cross-State Analysis** - Same crime type across multiple states
+
+**🎯 Single Tool, Complete Solution:**
+The `Data.py` script provides everything you need:
+- 📊 Interactive step-by-step workflow
+- 📈 Built-in visualizations and charts
+- ⚙️ 8 different analysis options
+- 📋 Comprehensive error handling and guidance
 
 
 ## Git workflow notes (team collaboration)
@@ -112,8 +174,8 @@ git revert <commit-hash>
 
 ## Contributing
 
-- When you edit `Data.py` or `Data.ipynb`, please run the script/notebook locally to verify behavior before pushing.
-- Communicate breaking changes in the dataset filenames or column names to the team so we can keep `Data.py` and the notebook in sync.
+- When you edit `Data.py`, please run the script locally to verify behavior before pushing.
+- Communicate breaking changes in the dataset filenames or column names to the team.
 
 
 ## Questions or next steps
@@ -123,4 +185,61 @@ git revert <commit-hash>
 
 ---
 
-Last updated: September 24, 2025
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+**❌ "Dataset directory not found" error:**
+```bash
+# Make sure you're in the project root directory
+cd path/to/Suraksha_Analytics
+python Data.py
+```
+
+**❌ "Module not found" error:**
+```bash
+# Install missing packages
+pip install -r requirements.txt
+
+# Or install individually
+pip install pandas numpy matplotlib seaborn
+```
+
+**❌ "Permission denied" error:**
+```bash
+# On Linux/Mac, ensure files are readable
+chmod +r Dataset/*.csv
+
+# On Windows, run as administrator or check antivirus settings
+```
+
+**❌ Files not loading properly:**
+```bash
+# Run the setup validator
+python setup_validator.py
+
+# This will diagnose and report specific issues
+```
+
+### Getting Help
+
+1. **Run Setup Validator**: `python setup_validator.py`
+2. **Check File Paths**: Ensure you're in the correct directory
+3. **Verify Downloads**: Make sure all files downloaded from Git
+4. **Check Permissions**: Ensure read access to Dataset folder
+5. **Update Dependencies**: `pip install --upgrade pandas numpy matplotlib seaborn`
+
+---
+
+## 📈 Project Stats
+
+- **5 Datasets** with 20,000+ crime records  
+- **6+ Years** of historical data (2017-2022)
+- **35+ States/UTs** across India
+- **700+ Districts** covered
+- **8 Analysis Types** available
+- **Cross-Platform** compatible (Windows/Mac/Linux)
+
+---
+
+*Last updated: November 15, 2025*
