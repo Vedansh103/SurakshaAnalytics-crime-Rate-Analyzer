@@ -1162,6 +1162,385 @@ def handle_statistical_analysis(datasets):
     return True
 
 
+def get_main_analysis_choice():
+    """
+    Show the main 8 analysis options and get user choice.
+    """
+    print("\n" + "="*60)
+    print("🎯 CHOOSE YOUR ANALYSIS TYPE")
+    print("="*60)
+    
+    print("1. Plot single crime trend")
+    print("2. Compare multiple crimes")  
+    print("3. Compare districts")
+    print("4. Descriptive stats")
+    print("5. Compare all districts")
+    print("6. Top hotspots")
+    print("7. Compare dataset types")
+    print("8. Cross-state comparison")
+    
+    while True:
+        choice = input("\nEnter your choice (1-8): ").strip()
+        if choice in ['1', '2', '3', '4', '5', '6', '7', '8']:
+            return choice
+        else:
+            print("❌ Invalid choice. Please enter 1-8.")
+
+
+def handle_option_1_single_trend(datasets):
+    """Option 1: Plot single crime trend"""
+    print("\n� SINGLE CRIME TREND ANALYSIS")
+    print("="*40)
+    
+    # 1️⃣ Which dataset?
+    print("1️⃣ Which dataset do you want to use?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Which district?
+    print("2️⃣ Which district?")
+    dataset_states = chosen_dataset_df['State Name'].unique()
+    state_name = get_state_choice(dataset_states)
+    if not state_name:
+        return False
+    
+    district_name = get_district_choice(state_name, chosen_dataset_df)
+    if not district_name:
+        return False
+    
+    # 3️⃣ Which crime type?
+    print("3️⃣ Which crime type?")
+    crime_choice = get_crime_choice(chosen_dataset_df)
+    if not crime_choice:
+        return False
+    
+    # Filter data
+    if district_name == 'all':
+        selected_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+    else:
+        selected_data = chosen_dataset_df[
+            (chosen_dataset_df['State Name'] == state_name) &
+            (chosen_dataset_df['District Name'] == district_name)
+        ]
+    
+    # 4️⃣ Show plot
+    print("4️⃣ Generating trend plot...")
+    plot_trends(selected_data, state_name, district_name, crime_choice)
+    return True
+
+
+def handle_option_2_multiple_crimes(datasets):
+    """Option 2: Compare multiple crimes"""
+    print("\n📊 MULTIPLE CRIMES COMPARISON")
+    print("="*40)
+    
+    # 1️⃣ Which dataset?
+    print("1️⃣ Which dataset?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Which district?
+    print("2️⃣ Which district?")
+    dataset_states = chosen_dataset_df['State Name'].unique()
+    state_name = get_state_choice(dataset_states)
+    if not state_name:
+        return False
+    
+    district_name = get_district_choice(state_name, chosen_dataset_df)
+    if not district_name:
+        return False
+    
+    # 3️⃣ Which crime types? (multi-select)
+    print("3️⃣ Which crime types do you want to compare? (multi-select)")
+    available_crimes = [c for c in chosen_dataset_df.columns if c not in 
+                       ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    print("Available crimes:")
+    for i, c in enumerate(available_crimes, 1):
+        print(f"{i}. {c}")
+    
+    crimes_input = input("Enter crimes (comma-separated numbers/names, or 'all'): ").strip()
+    crimes = parse_multiple_selection(crimes_input, available_crimes, allow_all=True)
+    if not crimes:
+        print("❌ No valid crimes selected")
+        return False
+    
+    # Filter data
+    if district_name == 'all':
+        selected_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+    else:
+        selected_data = chosen_dataset_df[
+            (chosen_dataset_df['State Name'] == state_name) &
+            (chosen_dataset_df['District Name'] == district_name)
+        ]
+    
+    # 4️⃣ Show line plot
+    print("4️⃣ Generating comparison plot...")
+    compare_multiple_crimes(selected_data, crimes, state_name, district_name)
+    return True
+
+
+def handle_option_3_compare_districts(datasets):
+    """Option 3: Compare multiple districts"""
+    print("\n🏙️ DISTRICTS COMPARISON")
+    print("="*40)
+    
+    # 1️⃣ Which dataset?
+    print("1️⃣ Which dataset?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Which state?
+    print("2️⃣ Which state?")
+    dataset_states = chosen_dataset_df['State Name'].unique()
+    state_name = get_state_choice(dataset_states)
+    if not state_name:
+        return False
+    
+    # 3️⃣ Which crime type?
+    print("3️⃣ Which crime type?")
+    crime_choice = get_crime_choice(chosen_dataset_df)
+    if not crime_choice:
+        return False
+    
+    # 4️⃣ Which districts?
+    print("4️⃣ Which districts do you want to compare?")
+    state_districts = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]['District Name'].unique()
+    print("Available districts:")
+    for i, d in enumerate(sorted(state_districts), 1):
+        print(f"{i}. {d}")
+    
+    districts_input = input("Enter districts (comma-separated numbers/names, or 'all'): ").strip()
+    chosen_districts = parse_multiple_selection(districts_input, sorted(state_districts), allow_all=True)
+    if not chosen_districts:
+        print("❌ No valid districts selected")
+        return False
+    
+    # 5️⃣ Show comparison
+    print("5️⃣ Generating districts comparison...")
+    compare_districts(chosen_dataset_df, state_name, chosen_districts, crime_choice)
+    return True
+
+
+def handle_option_7_compare_datasets(datasets):
+    """Option 7: Compare dataset types"""
+    print("\n📊 DATASET TYPES COMPARISON")
+    print("="*40)
+    
+    # 1️⃣ Which district or state?
+    print("1️⃣ Which district or state?")
+    # Use any dataset to get states (they should be consistent)
+    sample_dataset = list(datasets.values())[0]
+    dataset_states = sample_dataset['State Name'].unique()
+    state_name = get_state_choice(dataset_states)
+    if not state_name:
+        return False
+    
+    district_name = get_district_choice(state_name, sample_dataset)
+    if not district_name:
+        return False
+    
+    location_desc = f"{district_name}, {state_name}" if district_name != 'all' else f"ALL Districts in {state_name}"
+    
+    # 2️⃣ Which datasets? (automatically use all available)
+    print("2️⃣ Using all available datasets for comparison:")
+    for name in datasets.keys():
+        print(f"   • {name.replace('_', ' ').title()}")
+    
+    # 3️⃣ Show VS comparison
+    print("3️⃣ Generating dataset comparison...")
+    compare_dataset_types(datasets, state_name, district_name, location_desc)
+    return True
+
+
+def handle_option_4_descriptive_stats(datasets):
+    """Option 4: Descriptive statistics"""
+    print("\n📊 DESCRIPTIVE STATISTICS")
+    print("="*40)
+    
+    # 1️⃣ Which dataset?
+    print("1️⃣ Which dataset?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Which district/state?
+    print("2️⃣ Which location?")
+    dataset_states = chosen_dataset_df['State Name'].unique()
+    state_name = get_state_choice(dataset_states)
+    if not state_name:
+        return False
+    
+    district_name = get_district_choice(state_name, chosen_dataset_df)
+    if not district_name:
+        return False
+    
+    # 3️⃣ Which crime types?
+    print("3️⃣ Which crime types for statistics?")
+    available_crimes = [c for c in chosen_dataset_df.columns if c not in 
+                       ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    print("Available crimes:")
+    for i, c in enumerate(available_crimes, 1):
+        print(f"{i}. {c}")
+    
+    crimes_input = input("Enter crimes (comma-separated numbers/names, or 'all'): ").strip()
+    crimes = parse_multiple_selection(crimes_input, available_crimes, allow_all=True)
+    if not crimes:
+        print("❌ No valid crimes selected")
+        return False
+    
+    # Filter data
+    if district_name == 'all':
+        selected_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+    else:
+        selected_data = chosen_dataset_df[
+            (chosen_dataset_df['State Name'] == state_name) &
+            (chosen_dataset_df['District Name'] == district_name)
+        ]
+    
+    # 4️⃣ Show statistics
+    print("4️⃣ Generating descriptive statistics...")
+    show_descriptive_stats(selected_data, crimes)
+    return True
+
+
+def handle_option_5_compare_all_districts(datasets):
+    """Option 5: Compare all districts in a state (bar chart)"""
+    print("\n🏛️ COMPARE ALL DISTRICTS")
+    print("="*40)
+    
+    # 1️⃣ Which dataset?
+    print("1️⃣ Which dataset?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Which state?
+    print("2️⃣ Which state?")
+    dataset_states = chosen_dataset_df['State Name'].unique()
+    state_name = get_state_choice(dataset_states)
+    if not state_name:
+        return False
+    
+    # 3️⃣ Which crime type?
+    print("3️⃣ Which crime type?")
+    crime_choice = get_crime_choice(chosen_dataset_df)
+    if not crime_choice:
+        return False
+    
+    # Get state data
+    state_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+    
+    # 4️⃣ Show bar chart
+    print("4️⃣ Generating districts comparison bar chart...")
+    plot_all_districts_bar(state_data, state_name, crime_choice)
+    return True
+
+
+def handle_option_6_top_hotspots(datasets):
+    """Option 6: Top crime hotspots"""
+    print("\n🔥 TOP CRIME HOTSPOTS")
+    print("="*40)
+    
+    # 1️⃣ Which dataset?
+    print("1️⃣ Which dataset?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Which scope?
+    print("2️⃣ Analysis scope:")
+    print("1. District hotspots within a state")
+    print("2. State hotspots across country")
+    
+    scope = input("Choose scope (1-2): ").strip()
+    
+    # 3️⃣ Which crime type?
+    print("3️⃣ Which crime type?")
+    crime_choice = get_crime_choice(chosen_dataset_df)
+    if not crime_choice:
+        return False
+    
+    if scope == "1":
+        # District hotspots within a state
+        print("4️⃣ Which state for district analysis?")
+        dataset_states = chosen_dataset_df['State Name'].unique()
+        state_name = get_state_choice(dataset_states)
+        if not state_name:
+            return False
+        
+        state_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+        print("5️⃣ Generating district hotspots...")
+        show_crime_hotspots(state_data, state_name, crime_choice)
+        
+    elif scope == "2":
+        # State hotspots across country
+        print("4️⃣ Generating state hotspots...")
+        state_totals = chosen_dataset_df.groupby('State Name')[crime_choice].sum().sort_values(ascending=False)
+        
+        n_input = input("How many top states to show? (default: 10): ").strip()
+        try:
+            n = int(n_input) if n_input else 10
+        except ValueError:
+            n = 10
+        
+        top_states = state_totals.head(n)
+        print(f"\n🏆 Top {n} States for {crime_choice}:")
+        for i, (state, total) in enumerate(top_states.items(), 1):
+            print(f"{i:2d}. {state.title()}: {total:,} cases")
+        
+        # Visualize
+        plt.figure(figsize=(12, 8))
+        sns.barplot(x=top_states.values, y=top_states.index, palette="viridis")
+        plt.title(f"Top {n} States - {crime_choice} Cases", fontsize=14, fontweight='bold')
+        plt.xlabel("Total Cases")
+        plt.ylabel("State")
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("❌ Invalid scope choice")
+        return False
+    
+    return True
+
+
+def handle_option_8_cross_state(datasets):
+    """Option 8: Cross-state comparison"""
+    print("\n🌍 CROSS-STATE COMPARISON")
+    print("="*40)
+    
+    # 1️⃣ Which dataset?
+    print("1️⃣ Which dataset?")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    # 2️⃣ Which crime type?
+    print("2️⃣ Which crime type?")
+    crime_choice = get_crime_choice(datasets[file_choice])
+    if not crime_choice:
+        return False
+    
+    # 3️⃣ & 4️⃣ States selection and results handled in existing function
+    print("3️⃣ Selecting states and generating results...")
+    compare_states_datasets(datasets, file_choice, crime_choice)
+    return True
+
+
 def main():
     warnings.filterwarnings('ignore')
     
@@ -1179,30 +1558,32 @@ def main():
         print("\n💡 TIP: If you cloned from Git, make sure you pulled all files including the Dataset folder")
         return
 
-    print("\n" + "="*70)
+    print("\n" + "="*60)
     print("🚀 SURAKSHA ANALYTICS - CRIME DATA ANALYSIS TOOL")
-    print("="*70)
-    print("🎯 ANALYSIS-FIRST APPROACH")
-    print("First select what type of analysis you want, then we'll guide you through the data selection!")
-    print("="*70)
+    print("="*60)
 
     while True:
-        # Step 1: Choose analysis type first
-        analysis_type = get_analysis_type()
+        # Show main analysis options
+        choice = get_main_analysis_choice()
         
-        # Based on analysis type, guide through appropriate data selection
-        if analysis_type == '1':  # Single Location Analysis
-            result = handle_single_location_analysis(datasets)
-        elif analysis_type == '2':  # District vs District
-            result = handle_district_comparison_analysis(datasets)
-        elif analysis_type == '3':  # State vs State  
-            result = handle_state_comparison_analysis(datasets)
-        elif analysis_type == '4':  # Dataset vs Dataset
-            result = handle_dataset_comparison_analysis(datasets)
-        elif analysis_type == '5':  # Hotspot Analysis
-            result = handle_hotspot_analysis(datasets)
-        elif analysis_type == '6':  # Statistical Analysis
-            result = handle_statistical_analysis(datasets)
+        # Route to appropriate handler
+        result = False
+        if choice == '1':
+            result = handle_option_1_single_trend(datasets)
+        elif choice == '2':
+            result = handle_option_2_multiple_crimes(datasets)
+        elif choice == '3':
+            result = handle_option_3_compare_districts(datasets)
+        elif choice == '4':
+            result = handle_option_4_descriptive_stats(datasets)
+        elif choice == '5':
+            result = handle_option_5_compare_all_districts(datasets)
+        elif choice == '6':
+            result = handle_option_6_top_hotspots(datasets)
+        elif choice == '7':
+            result = handle_option_7_compare_datasets(datasets)
+        elif choice == '8':
+            result = handle_option_8_cross_state(datasets)
         
         if not result:
             print("\n❌ Analysis failed or was cancelled. Please try again.")
