@@ -28,12 +28,13 @@ st.markdown("""
     .main-header {
         text-align: center;
         padding: 2rem 0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 25%, #45b7d1 50%, #96ceb4 75%, #feca57 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 8s ease infinite, fadeInDown 0.8s ease-out;
         color: white;
-        border-radius: 15px;
+        border-radius: 20px;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        animation: fadeInDown 0.8s ease-out;
+        box-shadow: 0 15px 40px rgba(255, 107, 107, 0.4);
     }
     
     .feature-card {
@@ -71,15 +72,18 @@ st.markdown("""
     }
     
     .stats-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 10s ease infinite;
         padding: 3rem;
-        border-radius: 25px;
+        border-radius: 30px;
         color: white;
         text-align: center;
         margin: 3rem 0;
-        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 20px 50px rgba(102, 126, 234, 0.4);
         position: relative;
         overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.2);
     }
     
     .stats-container::before {
@@ -122,10 +126,15 @@ st.markdown("""
     
     .hero-title {
         font-size: 4.5rem;
-        color: #667eea;
+        background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+        background-size: 400% 400%;
+        animation: gradientShift 6s ease infinite, fadeInUp 1s ease-out, titlePulse 3s ease-in-out infinite;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         font-weight: 800;
         margin-bottom: 1rem;
-        animation: fadeInUp 1s ease-out;
+        text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
     }
     
     .hero-subtitle {
@@ -146,7 +155,9 @@ st.markdown("""
     }
     
     .cta-button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 25%, #45b7d1 50%, #96ceb4 75%, #feca57 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 3s ease infinite;
         color: white;
         padding: 1.2rem 3rem;
         border: none;
@@ -155,7 +166,7 @@ st.markdown("""
         font-weight: 600;
         cursor: pointer;
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
         position: relative;
         overflow: hidden;
     }
@@ -200,7 +211,12 @@ st.markdown("""
         font-weight: 700;
         text-align: center;
         margin: 3rem 0 2rem;
-        color: #667eea;
+        background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+        background-size: 200% 200%;
+        animation: gradientShift 4s ease infinite;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     
     .footer {
@@ -210,7 +226,7 @@ st.markdown("""
         border-radius: 25px;
         margin-top: 4rem;
         color: #666;
-        border-top: 3px solid #667eea;
+        border-top: 3px solid #4f46e5;
     }
     
     @keyframes fadeInUp {
@@ -249,6 +265,21 @@ st.markdown("""
         100% {
             box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
         }
+    }
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    @keyframes titlePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    @keyframes buttonGlow {
+        0%, 100% { box-shadow: 0 20px 40px rgba(255, 107, 107, 0.6); }
+        50% { box-shadow: 0 25px 50px rgba(255, 107, 107, 0.8), 0 0 30px rgba(255, 107, 107, 0.5); }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -325,7 +356,7 @@ def show_home_page():
                 <a href="#analytics" style="color: #666; text-decoration: none; font-weight: 500;">Analytics</a>
                 <a href="#about" style="color: #666; text-decoration: none; font-weight: 500;">About</a>
                 <button onclick="document.getElementById('hero_launch').click();" style="
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 50%, #45b7d1 100%);
                     color: white;
                     border: none;
                     padding: 0.5rem 1.5rem;
@@ -333,7 +364,8 @@ def show_home_page():
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.3s ease;
-                " onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0px)';">Get Started</button>
+                    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+                " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(255, 107, 107, 0.5)';" onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 5px 15px rgba(255, 107, 107, 0.3)';">Get Started</button>
             </div>
         </div>
     </div>
@@ -397,10 +429,10 @@ def show_home_page():
     
     with col1:
         st.markdown("""
-        <div class="feature-card">
+        <div class="feature-card" style="height: 320px; display: flex; flex-direction: column; justify-content: space-between;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-            <h3 style="color: #667eea; font-weight: 600; margin-bottom: 1rem;">Interactive Analytics</h3>
-            <p style="color: #666; line-height: 1.6;">Comprehensive data visualization with interactive charts, trend analysis, and statistical insights across multiple crime categories with real-time filtering.</p>
+            <h3 style="color: #ff6b6b; font-weight: 600; margin-bottom: 1rem;">Interactive Analytics</h3>
+            <p style="color: #666; line-height: 1.6; flex-grow: 1;">Comprehensive data visualization with interactive charts, trend analysis, and statistical insights across multiple crime categories with real-time filtering.</p>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #888;">
                 ⚡ Real-time • 📈 Trends • 🎯 Filtering
             </div>
@@ -409,10 +441,10 @@ def show_home_page():
     
     with col2:
         st.markdown("""
-        <div class="feature-card">
+        <div class="feature-card" style="height: 320px; display: flex; flex-direction: column; justify-content: space-between;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">🌍</div>
-            <h3 style="color: #667eea; font-weight: 600; margin-bottom: 1rem;">Geographic Intelligence</h3>
-            <p style="color: #666; line-height: 1.6;">Multi-state and district-level comparisons with advanced geographic analysis and crime pattern identification using spatial analytics.</p>
+            <h3 style="color: #4ecdc4; font-weight: 600; margin-bottom: 1rem;">Geographic Intelligence</h3>
+            <p style="color: #666; line-height: 1.6; flex-grow: 1;">Multi-state and district-level comparisons with advanced geographic analysis and crime pattern identification using spatial analytics.</p>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #888;">
                 🗺️ Spatial Analysis • 📍 Hotspots • 🔍 Patterns
             </div>
@@ -421,10 +453,10 @@ def show_home_page():
     
     with col3:
         st.markdown("""
-        <div class="feature-card">
+        <div class="feature-card" style="height: 320px; display: flex; flex-direction: column; justify-content: space-between;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">🔥</div>
-            <h3 style="color: #667eea; font-weight: 600; margin-bottom: 1rem;">AI-Powered Hotspots</h3>
-            <p style="color: #666; line-height: 1.6;">Advanced machine learning algorithms for crime hotspot identification with risk assessment and predictive analytics for proactive law enforcement.</p>
+            <h3 style="color: #45b7d1; font-weight: 600; margin-bottom: 1rem;">AI-Powered Hotspots</h3>
+            <p style="color: #666; line-height: 1.6; flex-grow: 1;">Advanced machine learning algorithms for crime hotspot identification with risk assessment and predictive analytics for proactive law enforcement.</p>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #888;">
                 🤖 AI-Powered • ⚠️ Risk Assessment • 🔮 Predictive
             </div>
@@ -450,7 +482,7 @@ def show_home_page():
             st.markdown("""
             <div class="metric-card">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊</div>
-                <div style="font-size: 2rem; font-weight: 700; color: #667eea;">{}</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #ff6b6b;">{}</div>
                 <div style="color: #666; font-weight: 500;">Datasets</div>
                 <div style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Crime categories</div>
             </div>
@@ -459,7 +491,7 @@ def show_home_page():
             st.markdown("""
             <div class="metric-card">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📋</div>
-                <div style="font-size: 2rem; font-weight: 700; color: #667eea;">{:,}</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #4ecdc4;">{:,}</div>
                 <div style="color: #666; font-weight: 500;">Records</div>
                 <div style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Crime incidents</div>
             </div>
@@ -468,7 +500,7 @@ def show_home_page():
             st.markdown("""
             <div class="metric-card">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🗺️</div>
-                <div style="font-size: 2rem; font-weight: 700; color: #667eea;">{}</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #45b7d1;">{}</div>
                 <div style="color: #666; font-weight: 500;">States/UTs</div>
                 <div style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Geographic coverage</div>
             </div>
@@ -477,7 +509,7 @@ def show_home_page():
             st.markdown("""
             <div class="metric-card">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏘️</div>
-                <div style="font-size: 2rem; font-weight: 700; color: #667eea;">{}</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #96ceb4;">{}</div>
                 <div style="color: #666; font-weight: 500;">Districts</div>
                 <div style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Local analysis</div>
             </div>
