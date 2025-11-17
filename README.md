@@ -1,4 +1,4 @@
-# 🚀 Suraksha Analytics
+# 🚀 Crime Analyser
 
 **Comprehensive District-wise Crime Data Analysis Platform for India (2017-2022)**
 
@@ -16,7 +16,7 @@ This repository provides advanced analytics tools for exploring crime patterns a
 ## 📁 Repository Structure
 
 ```
-Suraksha_Analytics/
+Crime_Analyser/
 ├── Data.py                           # 🚀 Main analysis tool (CLI interface)
 ├── Dataset/                          # 📊 Crime datasets (CSV files)
 ├── setup_validator.py                # 🔧 Environment validation tool
@@ -47,8 +47,8 @@ If you add or rename files inside `Dataset/`, update the dataset_files mapping i
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/mohvijayjain/Suraksha_Analytics.git
-cd Suraksha_Analytics
+git clone https://github.com/mohvijayjain/Crime_Analyser.git
+cd Crime_Analyser
 ```
 
 ### 2. Install Required Packages
@@ -66,13 +66,13 @@ pip install pandas numpy matplotlib seaborn
 **Option C: Virtual Environment (Recommended)**
 ```bash
 # Create virtual environment
-python -m venv suraksha_env
+python -m venv crime_analyser_env
 
 # Activate it
 # Windows:
-suraksha_env\Scripts\activate
+crime_analyser_env\Scripts\activate
 # Mac/Linux:
-source suraksha_env/bin/activate
+source crime_analyser_env/bin/activate
 
 # Install packages
 pip install -r requirements.txt
@@ -192,7 +192,7 @@ git revert <commit-hash>
 **❌ "Dataset directory not found" error:**
 ```bash
 # Make sure you're in the project root directory
-cd path/to/Suraksha_Analytics
+cd path/to/Crime_Analyser
 python Data.py
 ```
 

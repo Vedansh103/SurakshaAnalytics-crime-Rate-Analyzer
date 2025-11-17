@@ -13,7 +13,8 @@ sns.set(style="whitegrid", palette="deep")
 
 # Get the directory where this script is located
 SCRIPT_DIR = Path(__file__).parent.absolute()
-DATASET_DIR = SCRIPT_DIR / "Dataset"
+# Dataset is in the parent directory (project root)
+DATASET_DIR = SCRIPT_DIR.parent / "Dataset"
 
 def check_dataset_directory():
     if not DATASET_DIR.exists():

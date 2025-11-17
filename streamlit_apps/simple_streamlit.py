@@ -6,23 +6,27 @@ import sys
 import os
 from pathlib import Path
 
-# Add current directory to path to import Data module
-sys.path.append(str(Path(__file__).parent))
+# Add parent directory to path to import Data module
+sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent / "utils"))
 
 try:
-    from Data_clean import load_datasets, get_crime_columns
+    from utils.Data_clean import load_datasets, get_crime_columns
 except ImportError:
-    st.error("Could not import Data module. Make sure Data_clean.py is in the same directory.")
-    st.stop()
+    try:
+        from Data_clean import load_datasets, get_crime_columns
+    except ImportError:
+        st.error("Could not import Data module. Make sure Data_clean.py is available.")
+        st.stop()
 
 # Configure page
 st.set_page_config(
-    page_title="Suraksha Analytics",
+    page_title="Crime Analyser",
     layout="wide"
 )
 
 def main():
-    st.title("Suraksha Analytics")
+    st.title("Crime Analyser")
     st.write("Crime Data Analysis Platform for India")
     
     # Load datasets

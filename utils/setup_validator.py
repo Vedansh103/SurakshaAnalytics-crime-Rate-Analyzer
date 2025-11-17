@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup Validator for Suraksha Analytics
+Setup Validator for Crime Analyser
 This script checks if your environment is properly configured to run the analysis tools.
 """
 
@@ -130,7 +130,7 @@ def test_data_loading():
 
 def main():
     """Run all setup checks"""
-    print("🔍 SURAKSHA ANALYTICS - SETUP VALIDATOR")
+    print("🔍 CRIME ANALYSER - SETUP VALIDATOR")
     print("=" * 50)
     
     checks = [
@@ -153,7 +153,7 @@ def main():
     print("\n" + "=" * 50)
     if all_passed:
         print("🎉 ALL CHECKS PASSED!")
-        print("✅ Your system is ready to run Suraksha Analytics")
+        print("✅ Your system is ready to run Crime Analyser")
         print("🚀 You can now run:")
         print("   • python Data.py        (comprehensive crime data analysis tool)")
     else:
