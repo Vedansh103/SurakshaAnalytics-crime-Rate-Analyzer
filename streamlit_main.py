@@ -458,6 +458,29 @@ def select_by_category_streamlit(available_crimes, max_select):
     
     return selected_crimes[:max_select]
 
+def select_by_search_streamlit(available_crimes, max_select):
+    """Select crimes by search in Streamlit"""
+    search_term = st.text_input("Search for crimes:", key="crime_search")
+    
+    if search_term:
+        matching_crimes = [c for c in available_crimes if search_term.lower() in c.lower()]
+        
+        if matching_crimes:
+            st.write(f"**Found {len(matching_crimes)} matching crimes:**")
+            selected_crimes = st.multiselect(
+                "Select from search results:",
+                matching_crimes,
+                key="search_results",
+                max_selections=max_select
+            )
+            return selected_crimes
+        else:
+            st.warning(f"No crimes found matching '{search_term}'")
+            return []
+    else:
+        st.info("Enter a search term to find crimes")
+        return []
+
 def select_popular_crimes_streamlit(available_crimes, max_select):
     """Select from popular crimes in Streamlit"""
     popular_keywords = [
@@ -694,7 +717,7 @@ def main():
         st.info("Make sure you have the Dataset folder with CSV files in the same directory as this script.")
         return
     
-    st.success(f"✅ Loaded {len(datasets)} datasets successfully!")
+
     
     # Sidebar for analysis type selection
     st.sidebar.header("🎯 Analysis Configuration")
@@ -711,11 +734,37 @@ def main():
         "Enhanced Visualizations": "Interactive pie charts, heatmaps, and advanced plots"
     }
     
-    selected_analysis = st.sidebar.selectbox(
-        "Choose Analysis Type:",
-        list(analysis_options.keys()),
-        help="Select the type of analysis you want to perform"
-    )
+    # Use analysis type from home page if available, otherwise use sidebar selection
+    if 'analysis_type' in st.session_state and st.session_state.analysis_type:
+        # Map the analysis type from home page to match the options
+        analysis_mapping = {
+            "Single Crime Trend": "Single Crime Trend",
+            "Multiple Crimes Comparison": "Multiple Crimes Comparison", 
+            "Multi-District Comparison": "Multi-District Comparison",
+            "Descriptive Statistics": "Descriptive Statistics",
+            "District Bar Chart": "District Bar Chart",
+            "Crime Hotspots": "Crime Hotspots",
+            "Cross-Dataset Comparison": "Cross-Dataset Comparison",
+            "Cross-State Analysis": "Cross-State Analysis",
+            "Enhanced Visualizations": "Enhanced Visualizations"
+        }
+        
+        selected_analysis = analysis_mapping.get(st.session_state.analysis_type, "Single Crime Trend")
+        
+        # Show the selected analysis in sidebar but make it read-only
+        st.sidebar.write(f"**Selected Analysis:** {selected_analysis}")
+        st.sidebar.write("*Selected from home page*")
+        
+        # Option to change analysis type
+        if st.sidebar.button("Change Analysis Type"):
+            del st.session_state.analysis_type
+            st.rerun()
+    else:
+        selected_analysis = st.sidebar.selectbox(
+            "Choose Analysis Type:",
+            list(analysis_options.keys()),
+            help="Select the type of analysis you want to perform"
+        )
     
     st.sidebar.write(f"**Description:** {analysis_options[selected_analysis]}")
     

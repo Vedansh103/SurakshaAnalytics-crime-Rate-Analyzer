@@ -734,6 +734,9 @@ def show_enhanced_analysis_interface(datasets):
         </div>
         """, unsafe_allow_html=True)
         
+        # Set the analysis type in session state for streamlit_main to use
+        st.session_state.analysis_type = st.session_state.selected_analysis
+        
         # Run the main analysis application
         from streamlit_main import main as analysis_main
         analysis_main()
