@@ -11,6 +11,8 @@
 # - Bar chart comparison for all districts in a state
 # - UPDATED: Using try...except for numeric input validation
 # - NEW: Identify top N hotspots (Action 6)
+# - NEW: Advanced Plotly visualizations (Pie, Heatmap, Interactive)
+# - NEW: Outlier Detection (Z-score, IQR, Boxplot) in Option 4
 
 import numpy as np
 import pandas as pd
@@ -749,7 +751,8 @@ def show_full_list_selection(available_crimes, max_select, context):
 
 def show_descriptive_stats(df, crime_cols):
     """
-    Shows descriptive statistics (mean, median, std, min, max) for selected crime columns.
+    Shows descriptive statistics (mean, median, std, min, max) 
+    AND textual outlier analysis for selected crime columns.
     """
     existing = [c for c in crime_cols if c in df.columns]
     if not existing:
@@ -765,6 +768,51 @@ def show_descriptive_stats(df, crime_cols):
             # safety: some describe variants might differ
             stats[col] = None
     print(stats[to_show].round(3))
+
+    # === NEW OUTLIER SECTION ===
+    print("\n=== Textual Outlier Detection ===")
+    print("(Based on non-zero values; '0' cases are not considered outliers)")
+    
+    for col in existing:
+        print(f"\n--- Outliers for '{col}' ---")
+        
+        # Filter out zeros for meaningful outlier analysis
+        series = df[df[col] > 0][col]
+        
+        if series.empty:
+            print("  No non-zero data available for outlier analysis.")
+            continue
+        
+        # 1. Z-Score Method
+        mean = series.mean()
+        std = series.std()
+        if std > 0:
+            z_scores = np.abs((series - mean) / std)
+            outliers_z = series[z_scores > 3] # Using threshold=3
+            if not outliers_z.empty:
+                print(f"  Z-Score (threshold=3) outliers: {sorted(list(outliers_z.values))}")
+            else:
+                print("  No Z-Score (threshold=3) outliers found.")
+        else:
+            print("  Z-Score: Not applicable (data has no variance).")
+
+        # 2. IQR Rule
+        Q1 = series.quantile(0.25)
+        Q3 = series.quantile(0.75)
+        IQR = Q3 - Q1
+        
+        if IQR > 0:
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            outliers_iqr = series[(series < lower_bound) | (series > upper_bound)]
+            if not outliers_iqr.empty:
+                print(f"  IQR (multiplier=1.5) outliers: {sorted(list(outliers_iqr.values))}")
+            else:
+                print("  No IQR (multiplier=1.5) outliers found.")
+        else:
+            print("  IQR: Not applicable (data has no variance).")
+    # === END NEW SECTION ===
 
 
 def plot_trends(data, state, district, crime):
@@ -1686,6 +1734,46 @@ def plot_india_crime_map(data, crime_type, title_suffix=""):
     print(f"✅ Crime hotspot map generated for {crime_type}")
 
 
+# *** NEW FUNCTION: Added for Boxplot ***
+def plot_boxplot_outliers(data, crime_col, location_desc):
+    """
+    Generates an interactive boxplot using Plotly to visually identify outliers.
+    'data' is the filtered DataFrame (e.g., for a specific district).
+    'crime_col' is the single crime to plot.
+    'location_desc' is for the title.
+    """
+    if data.empty or crime_col not in data.columns:
+        print("No data to plot for boxplot.")
+        return
+        
+    # Filter out zero values to make the boxplot more meaningful
+    # (Often, crime data has many zeros which are not 'outliers' but just 'no crime')
+    plot_data = data[data[crime_col] > 0]
+    
+    if plot_data.empty:
+        print(f"No non-zero data for '{crime_col}' to plot (all values are 0).")
+        return
+
+    fig = px.box(
+        plot_data,
+        y=crime_col,
+        title=f"📦 Outlier Analysis (Boxplot) for '{crime_col}'<br>Location: {location_desc} (showing non-zero values)",
+        points="all",  # Show all individual data points
+        hover_data=data.columns  # Show all data on hover
+    )
+    
+    fig.update_layout(
+        yaxis_title="Number of Cases",
+        xaxis_title=f"{crime_col}",
+    )
+    
+    # 
+
+
+    fig.show()
+    print(f"✅ Interactive boxplot generated for {crime_col}.")
+
+
 # *** NEW FUNCTIONS: Cross-Dataset Comparison ***
 def compare_dataset_types(datasets, state_name, district_name, location_desc):
     """
@@ -1900,7 +1988,7 @@ def verify_setup():
     print(f"🐍 Python version: {sys.version.split()[0]}")
     
     # Check required packages
-    required_packages = ['pandas', 'numpy', 'matplotlib', 'seaborn']
+    required_packages = ['pandas', 'numpy', 'matplotlib', 'seaborn', 'plotly', 'scipy']
     print(f"\n📦 Package versions:")
     for package in required_packages:
         try:
@@ -1912,6 +2000,12 @@ def verify_setup():
                 print(f"   {package}: {plt.matplotlib.__version__}")
             elif package == 'seaborn':
                 print(f"   {package}: {sns.__version__}")
+            elif package == 'plotly':
+                import plotly
+                print(f"   {package}: {plotly.__version__}")
+            elif package == 'scipy':
+                import scipy
+                print(f"   {package}: {scipy.__version__}")
         except Exception:
             print(f"   {package}: ❌ Not installed")
     
@@ -2280,7 +2374,7 @@ def get_main_analysis_choice():
     print("1. Plot single crime trend")
     print("2. Compare multiple crimes")  
     print("3. Compare districts")
-    print("4. Descriptive stats")
+    print("4. Descriptive stats & Outliers")
     print("5. Compare all districts")
     print("6. Top hotspots")
     print("7. Compare dataset types")
@@ -2297,7 +2391,7 @@ def get_main_analysis_choice():
 
 def handle_option_1_single_trend(datasets):
     """Option 1: Plot single crime trend"""
-    print("\n� SINGLE CRIME TREND ANALYSIS")
+    print("\n📈 SINGLE CRIME TREND ANALYSIS")
     print("="*40)
     
     # 1️⃣ Which dataset?
@@ -2466,8 +2560,8 @@ def handle_option_7_compare_datasets(datasets):
 
 
 def handle_option_4_descriptive_stats(datasets):
-    """Option 4: Descriptive statistics"""
-    print("\n📊 DESCRIPTIVE STATISTICS")
+    """Option 4: Descriptive statistics & Outliers"""
+    print("\n📊 DESCRIPTIVE STATISTICS & OUTLIERS")
     print("="*40)
     
     # 1️⃣ Which dataset?
@@ -2508,9 +2602,49 @@ def handle_option_4_descriptive_stats(datasets):
             (chosen_dataset_df['District Name'] == district_name)
         ]
     
-    # 4️⃣ Show statistics
-    print("4️⃣ Generating descriptive statistics...")
+    # 4️⃣ Show statistics (which now includes Z-score and IQR)
+    print("4️⃣ Generating descriptive statistics & textual outlier analysis...")
     show_descriptive_stats(selected_data, crimes)
+
+    # === NEW BOXPLOT SECTION ===
+    print("\n" + "-"*30)
+    print("📦 VISUAL OUTLIER ANALYSIS")
+    plot_choice = input("Do you want to see a boxplot for visual outliers? (yes/no): ").strip().lower()
+    if plot_choice in ['yes', 'y']:
+        
+        # Re-create location_desc for the plot title
+        if district_name == 'all':
+            location_desc = f"ALL Districts in {state_name}"
+        else:
+            location_desc = f"{district_name}, {state_name}"
+
+        # If multiple crimes were analyzed, ask which one to plot
+        crime_to_plot = None
+        if len(crimes) > 1:
+            print("Which crime do you want to plot?")
+            for i, c in enumerate(crimes, 1):
+                print(f"{i}. {c}")
+            
+            try:
+                choice = int(input(f"Enter number (1-{len(crimes)}): ").strip()) - 1
+                if 0 <= choice < len(crimes):
+                    crime_to_plot = crimes[choice]
+                else:
+                    print(f"Invalid choice, plotting the first crime: {crimes[0]}")
+                    crime_to_plot = crimes[0]
+            except ValueError:
+                print(f"Invalid input, plotting the first crime: {crimes[0]}")
+                crime_to_plot = crimes[0]
+        elif len(crimes) == 1:
+            crime_to_plot = crimes[0]
+        
+        if crime_to_plot:
+            # Call the new function
+            plot_boxplot_outliers(selected_data, crime_to_plot, location_desc)
+        else:
+            print("No crimes were selected for statistical analysis.")
+    # === END NEW SECTION ===
+    
     return True
 
 
@@ -2641,65 +2775,6 @@ def handle_option_8_cross_state(datasets):
     return True
 
 
-def main():
-    warnings.filterwarnings('ignore')
-    
-    # Show setup information
-    verify_setup()
-    
-    # Load datasets
-    datasets = load_datasets()
-    if not datasets:
-        print("\n🚨 SETUP INSTRUCTIONS:")
-        print("1. Ensure you're running this script from the project root directory")
-        print("2. Verify the 'Dataset' folder exists in the same directory as Data.py")
-        print("3. Check that all required CSV files are present in the Dataset folder")
-        print("4. Make sure you have read permissions for the files")
-        print("\n💡 TIP: If you cloned from Git, make sure you pulled all files including the Dataset folder")
-        return
-
-    print("\n" + "="*60)
-    print("🚀 SURAKSHA ANALYTICS - CRIME DATA ANALYSIS TOOL")
-    print("="*60)
-
-    while True:
-        # Show main analysis options
-        choice = get_main_analysis_choice()
-        
-        # Route to appropriate handler
-        result = False
-        if choice == '1':
-            result = handle_option_1_single_trend(datasets)
-        elif choice == '2':
-            result = handle_option_2_multiple_crimes(datasets)
-        elif choice == '3':
-            result = handle_option_3_compare_districts(datasets)
-        elif choice == '4':
-            result = handle_option_4_descriptive_stats(datasets)
-        elif choice == '5':
-            result = handle_option_5_compare_all_districts(datasets)
-        elif choice == '6':
-            result = handle_option_6_top_hotspots(datasets)
-        elif choice == '7':
-            result = handle_option_7_compare_datasets(datasets)
-        elif choice == '8':
-            result = handle_option_8_cross_state(datasets)
-        elif choice == '9':
-            result = handle_option_9_enhanced_visualizations(datasets)
-        
-        if not result:
-            print("\n❌ Analysis failed or was cancelled. Please try again.")
-            continue
-
-        print("\n" + "-"*60)
-        another = input("Perform another analysis? (yes/no): ").strip().lower()
-        if another not in ['yes', 'y']:
-            print("Exiting analysis tool. Goodbye!")
-            break
-        else:
-            print("\nStarting new analysis...\n")
-
-
 def handle_option_9_enhanced_visualizations(datasets):
     """Option 9: Enhanced Visualizations (Pie, Heatmap, Interactive, etc.)"""
     print("\n🎨 ENHANCED VISUALIZATIONS")
@@ -2785,7 +2860,7 @@ def handle_option_9_enhanced_visualizations(datasets):
                     state_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
                     plot_crime_heatmap(state_data, state_name, "all", method='district_comparison')
                 
-                print("\n� Generating year vs location analysis...")
+                print("\n📅 Generating year vs location analysis...")
                 plot_crime_heatmap(selected_data, state_name, district_name, method='year_location')
                 
                 print("✅ All geographic heatmaps completed!")
@@ -2886,6 +2961,65 @@ def handle_option_9_enhanced_visualizations(datasets):
         print("This might be due to missing data or Plotly not being installed.")
         print("Install Plotly with: pip install plotly")
         return False
+
+
+def main():
+    warnings.filterwarnings('ignore')
+    
+    # Show setup information
+    verify_setup()
+    
+    # Load datasets
+    datasets = load_datasets()
+    if not datasets:
+        print("\n🚨 SETUP INSTRUCTIONS:")
+        print("1. Ensure you're running this script from the project root directory")
+        print("2. Verify the 'Dataset' folder exists in the same directory as Data.py")
+        print("3. Check that all required CSV files are present in the Dataset folder")
+        print("4. Make sure you have read permissions for the files")
+        print("\n💡 TIP: If you cloned from Git, make sure you pulled all files including the Dataset folder")
+        return
+
+    print("\n" + "="*60)
+    print("🚀 SURAKSHA ANALYTICS - CRIME DATA ANALYSIS TOOL")
+    print("="*60)
+
+    while True:
+        # Show main analysis options
+        choice = get_main_analysis_choice()
+        
+        # Route to appropriate handler
+        result = False
+        if choice == '1':
+            result = handle_option_1_single_trend(datasets)
+        elif choice == '2':
+            result = handle_option_2_multiple_crimes(datasets)
+        elif choice == '3':
+            result = handle_option_3_compare_districts(datasets)
+        elif choice == '4':
+            result = handle_option_4_descriptive_stats(datasets)
+        elif choice == '5':
+            result = handle_option_5_compare_all_districts(datasets)
+        elif choice == '6':
+            result = handle_option_6_top_hotspots(datasets)
+        elif choice == '7':
+            result = handle_option_7_compare_datasets(datasets)
+        elif choice == '8':
+            result = handle_option_8_cross_state(datasets)
+        elif choice == '9':
+            result = handle_option_9_enhanced_visualizations(datasets)
+        
+        if not result:
+            print("\n❌ Analysis failed or was cancelled. Please try again.")
+            continue
+
+        print("\n" + "-"*60)
+        another = input("Perform another analysis? (yes/no): ").strip().lower()
+        if another not in ['yes', 'y']:
+            print("Exiting analysis tool. Goodbye!")
+            break
+        else:
+            print("\nStarting new analysis...\n")
 
 
 if __name__ == "__main__":
