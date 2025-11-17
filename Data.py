@@ -330,7 +330,7 @@ def get_crime_choice(dataset):
     Returns chosen crime column name or None.
     """
     crime_columns = [col for col in dataset.columns if col not in 
-                     ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+                    ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
     if not crime_columns:
         print("No crime-specific columns found in this dataset.")
         return None
@@ -1019,63 +1019,478 @@ def plot_pie_chart_crime_distribution(data, state_name, district_name="all", top
     print(f"✅ Pie chart generated for {location_desc}")
 
 
-def plot_crime_heatmap(data, state_name, district_name="all", method='correlation'):
+def plot_crime_heatmap(data, state_name, district_name="all", method='geographic'):
     """
-    4. Heatmaps (Correlation Between Crimes)
-    Helps identify crime patterns, correlation, and hotspots within datasets.
+    4. Geographic Heatmaps (Crime Distribution Across Locations)
+    Shows crime intensity across states, districts, and years for geographic analysis.
     """
-    if data.empty:
-        print("No data available for heatmap.")
-        return
+    try:
+        if data.empty:
+            print("❌ No data available for heatmap.")
+            return False
+        
+        print(f"📊 Generating geographic heatmap for {len(data)} records...")
+        
+        # Get crime columns
+        crime_columns = [col for col in data.columns if col not in 
+                        ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+        
+        print(f"📋 Found {len(crime_columns)} crime types for analysis")
+        
+        if len(crime_columns) < 1:
+            print("❌ No crime data found for heatmap.")
+            print(f"Available columns: {list(data.columns)}")
+            return False
+        
+        location_desc = f"{district_name}, {state_name}" if district_name != "all" else f"Multiple Locations"
+        
+        if method == 'geographic':
+            # Geographic heatmap - Crime intensity across states/districts
+            return create_geographic_heatmap(data, crime_columns, location_desc)
+        
+        elif method == 'state_comparison':
+            # State-wise crime comparison heatmap
+            return create_state_comparison_heatmap(data, crime_columns)
+        
+        elif method == 'district_comparison':
+            # District-wise crime comparison within a state
+            return create_district_comparison_heatmap(data, crime_columns, state_name)
+        
+        elif method == 'year_location':
+            # Year vs Location heatmap
+            return create_year_location_heatmap(data, crime_columns, state_name)
+        
+        else:
+            print("❌ Invalid heatmap method. Choose: geographic, state_comparison, district_comparison, or year_location")
+            return False
     
-    # Get crime columns
+    except Exception as e:
+        print(f"❌ Error generating heatmap: {str(e)}")
+        print("🔍 Debug info:")
+        print(f"   - Data shape: {data.shape}")
+        print(f"   - Available columns: {list(data.columns)}")
+        print(f"   - Method: {method}")
+        return False
+
+
+def create_geographic_heatmap(data, crime_columns, location_desc):
+    """
+    Create a geographic heatmap showing crime distribution across locations.
+    """
+    try:
+        print("🗺️ Creating geographic crime distribution heatmap...")
+        
+        # Choose a representative crime or allow user selection
+        if len(crime_columns) > 1:
+            print(f"📋 Available crime types ({len(crime_columns)} total):")
+            for i, crime in enumerate(crime_columns[:10], 1):
+                print(f"{i:2d}. {crime}")
+            if len(crime_columns) > 10:
+                print(f"    ... and {len(crime_columns)-10} more")
+            
+            crime_choice = input("Enter crime number or name (or press Enter for total): ").strip()
+            
+            if crime_choice.isdigit() and 1 <= int(crime_choice) <= min(10, len(crime_columns)):
+                selected_crime = crime_columns[int(crime_choice) - 1]
+            elif crime_choice in crime_columns:
+                selected_crime = crime_choice
+            else:
+                # Use total of all crimes
+                selected_crime = None
+        else:
+            selected_crime = crime_columns[0]
+        
+        # Create location-wise aggregation
+        if 'State Name' in data.columns and 'District Name' in data.columns:
+            if selected_crime:
+                # Single crime analysis
+                location_data = data.groupby(['State Name', 'District Name'])[selected_crime].sum().reset_index()
+                location_data = location_data[location_data[selected_crime] > 0]
+                
+                if location_data.empty:
+                    print(f"❌ No data for {selected_crime}")
+                    return False
+                
+                # Create pivot table for heatmap
+                pivot_data = location_data.pivot(index='State Name', columns='District Name', values=selected_crime)
+                title = f'🗺️ Geographic Distribution: {selected_crime}<br>{location_desc}'
+                
+            else:
+                # Total crimes analysis
+                numeric_crimes = []
+                for col in crime_columns:
+                    temp_col = pd.to_numeric(data[col], errors='coerce').fillna(0)
+                    numeric_crimes.append(temp_col)
+                
+                data['Total_Crimes'] = sum(numeric_crimes)
+                location_data = data.groupby(['State Name', 'District Name'])['Total_Crimes'].sum().reset_index()
+                location_data = location_data[location_data['Total_Crimes'] > 0]
+                
+                if location_data.empty:
+                    print("❌ No crime data found")
+                    return False
+                
+                # Create pivot table
+                pivot_data = location_data.pivot(index='State Name', columns='District Name', values='Total_Crimes')
+                title = f'🗺️ Geographic Distribution: All Crimes Combined<br>{location_desc}'
+            
+            # Fill NaN with 0 for visualization
+            pivot_data = pivot_data.fillna(0)
+            
+            # Limit size for readability
+            if pivot_data.shape[0] > 20 or pivot_data.shape[1] > 30:
+                # Show top states and districts
+                state_totals = pivot_data.sum(axis=1).sort_values(ascending=False)
+                top_states = state_totals.head(15).index
+                
+                district_totals = pivot_data.sum(axis=0).sort_values(ascending=False)  
+                top_districts = district_totals.head(20).index
+                
+                pivot_data = pivot_data.loc[top_states, top_districts]
+                title += f'<br>Top {len(top_states)} States × Top {len(top_districts)} Districts'
+            
+            # Create interactive heatmap
+            try:
+                fig = px.imshow(
+                    pivot_data.values,
+                    x=pivot_data.columns,
+                    y=pivot_data.index,
+                    color_continuous_scale='Reds',
+                    title=title,
+                    labels=dict(x="District", y="State", color="Cases")
+                )
+                
+                fig.update_layout(
+                    height=max(500, len(pivot_data.index) * 25),
+                    width=max(800, len(pivot_data.columns) * 20),
+                    font=dict(size=10),
+                    xaxis_title="Districts",
+                    yaxis_title="States"
+                )
+                
+                # Rotate x-axis labels for readability
+                fig.update_xaxes(tickangle=45)
+                
+                fig.show()
+                print(f"✅ Geographic heatmap generated!")
+                return True
+                
+            except Exception as e:
+                print(f"⚠️ Plotly failed: {e}")
+                return create_fallback_geographic_heatmap(pivot_data, title)
+        
+        else:
+            print("❌ Missing State Name or District Name columns")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error creating geographic heatmap: {e}")
+        return False
+
+
+def create_state_comparison_heatmap(data, crime_columns):
+    """
+    Create heatmap comparing crime types across states.
+    """
+    try:
+        print("🏛️ Creating state comparison heatmap...")
+        
+        if 'State Name' not in data.columns:
+            print("❌ No State Name column found")
+            return False
+        
+        # Select top crimes and states for manageable visualization
+        crime_data = data[['State Name'] + crime_columns].copy()
+        
+        # Convert crime columns to numeric
+        for col in crime_columns:
+            crime_data[col] = pd.to_numeric(crime_data[col], errors='coerce').fillna(0)
+        
+        # Aggregate by state
+        state_crimes = crime_data.groupby('State Name')[crime_columns].sum()
+        
+        # Get top crimes by total volume
+        crime_totals = state_crimes.sum().sort_values(ascending=False)
+        top_crimes = crime_totals.head(15).index.tolist()  # Top 15 crimes
+        
+        # Get top states by total crime
+        state_totals = state_crimes[top_crimes].sum(axis=1).sort_values(ascending=False)
+        top_states = state_totals.head(20).index.tolist()  # Top 20 states
+        
+        # Create filtered dataset
+        heatmap_data = state_crimes.loc[top_states, top_crimes]
+        
+        try:
+            fig = px.imshow(
+                heatmap_data.values,
+                x=heatmap_data.columns,
+                y=heatmap_data.index,
+                color_continuous_scale='Reds',
+                title=f'🏛️ State vs Crime Type Heatmap<br>Top {len(top_states)} States × Top {len(top_crimes)} Crimes',
+                labels=dict(x="Crime Type", y="State", color="Cases")
+            )
+            
+            fig.update_layout(
+                height=max(600, len(top_states) * 25),
+                width=max(1000, len(top_crimes) * 50),
+                font=dict(size=10),
+                xaxis_title="Crime Types",
+                yaxis_title="States"
+            )
+            
+            fig.update_xaxes(tickangle=45)
+            fig.show()
+            print(f"✅ State comparison heatmap generated!")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Plotly failed: {e}")
+            return create_fallback_state_heatmap(heatmap_data)
+            
+    except Exception as e:
+        print(f"❌ Error creating state comparison heatmap: {e}")
+        return False
+
+
+def create_district_comparison_heatmap(data, crime_columns, state_name):
+    """
+    Create heatmap comparing crime types across districts within a state.
+    """
+    try:
+        print(f"🏘️ Creating district comparison heatmap for {state_name}...")
+        
+        if 'District Name' not in data.columns:
+            print("❌ No District Name column found")
+            return False
+        
+        # Filter to specific state
+        state_data = data[data['State Name'] == state_name].copy()
+        
+        if state_data.empty:
+            print(f"❌ No data found for {state_name}")
+            return False
+        
+        # Select crime data
+        district_crime_data = state_data[['District Name'] + crime_columns].copy()
+        
+        # Convert to numeric
+        for col in crime_columns:
+            district_crime_data[col] = pd.to_numeric(district_crime_data[col], errors='coerce').fillna(0)
+        
+        # Aggregate by district
+        district_crimes = district_crime_data.groupby('District Name')[crime_columns].sum()
+        
+        # Get top crimes and districts
+        crime_totals = district_crimes.sum().sort_values(ascending=False)
+        top_crimes = crime_totals.head(12).index.tolist()
+        
+        district_totals = district_crimes[top_crimes].sum(axis=1).sort_values(ascending=False)
+        top_districts = district_totals.head(25).index.tolist()
+        
+        heatmap_data = district_crimes.loc[top_districts, top_crimes]
+        
+        try:
+            fig = px.imshow(
+                heatmap_data.values,
+                x=heatmap_data.columns,
+                y=heatmap_data.index,
+                color_continuous_scale='Reds',
+                title=f'🏘️ District vs Crime Type Heatmap - {state_name}<br>Top {len(top_districts)} Districts × Top {len(top_crimes)} Crimes',
+                labels=dict(x="Crime Type", y="District", color="Cases")
+            )
+            
+            fig.update_layout(
+                height=max(600, len(top_districts) * 20),
+                width=max(900, len(top_crimes) * 60),
+                font=dict(size=10)
+            )
+            
+            fig.update_xaxes(tickangle=45)
+            fig.show()
+            print(f"✅ District comparison heatmap generated for {state_name}!")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Plotly failed: {e}")
+            return create_fallback_district_heatmap(heatmap_data, state_name)
+            
+    except Exception as e:
+        print(f"❌ Error creating district comparison heatmap: {e}")
+        return False
+
+
+def create_year_location_heatmap(data, crime_columns, state_name):
+    """
+    Create heatmap showing crime trends over years across locations.
+    """
+    try:
+        print(f"📅 Creating year vs location heatmap...")
+        
+        if 'Year' not in data.columns:
+            print("❌ No Year column found")
+            return False
+        
+        # Choose single crime for year analysis
+        if len(crime_columns) > 1:
+            print("Select crime type for year analysis:")
+            for i, crime in enumerate(crime_columns[:10], 1):
+                print(f"{i:2d}. {crime}")
+            
+            choice = input("Enter number: ").strip()
+            if choice.isdigit() and 1 <= int(choice) <= min(10, len(crime_columns)):
+                selected_crime = crime_columns[int(choice) - 1]
+            else:
+                selected_crime = crime_columns[0]
+        else:
+            selected_crime = crime_columns[0]
+        
+        # Aggregate by year and location
+        if state_name != "Multiple Locations":
+            # District level for specific state
+            state_data = data[data['State Name'] == state_name]
+            year_location_data = state_data.groupby(['Year', 'District Name'])[selected_crime].sum().reset_index()
+            year_location_data[selected_crime] = pd.to_numeric(year_location_data[selected_crime], errors='coerce').fillna(0)
+            
+            pivot_data = year_location_data.pivot(index='District Name', columns='Year', values=selected_crime).fillna(0)
+            title = f'📅 {selected_crime} Over Years - {state_name} Districts'
+            
+        else:
+            # State level across all states
+            year_location_data = data.groupby(['Year', 'State Name'])[selected_crime].sum().reset_index()
+            year_location_data[selected_crime] = pd.to_numeric(year_location_data[selected_crime], errors='coerce').fillna(0)
+            
+            pivot_data = year_location_data.pivot(index='State Name', columns='Year', values=selected_crime).fillna(0)
+            title = f'📅 {selected_crime} Over Years - All States'
+        
+        # Limit data for readability
+        if len(pivot_data.index) > 25:
+            location_totals = pivot_data.sum(axis=1).sort_values(ascending=False)
+            top_locations = location_totals.head(25).index
+            pivot_data = pivot_data.loc[top_locations]
+        
+        try:
+            fig = px.imshow(
+                pivot_data.values,
+                x=pivot_data.columns,
+                y=pivot_data.index,
+                color_continuous_scale='Reds',
+                title=title,
+                labels=dict(x="Year", y="Location", color="Cases")
+            )
+            
+            fig.update_layout(
+                height=max(500, len(pivot_data.index) * 20),
+                width=max(700, len(pivot_data.columns) * 60),
+                font=dict(size=10)
+            )
+            
+            fig.show()
+            print(f"✅ Year vs location heatmap generated!")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Plotly failed: {e}")
+            # Fallback to seaborn
+            plt.figure(figsize=(max(10, len(pivot_data.columns)*0.8), max(8, len(pivot_data.index)*0.4)))
+            sns.heatmap(pivot_data, cmap='Reds', annot=False, cbar_kws={'label': 'Cases'})
+            plt.title(title)
+            plt.xlabel('Year')
+            plt.ylabel('Location')
+            plt.tight_layout()
+            plt.show()
+            return True
+            
+    except Exception as e:
+        print(f"❌ Error creating year vs location heatmap: {e}")
+        return False
+
+
+def create_fallback_geographic_heatmap(pivot_data, title):
+    """Fallback matplotlib heatmap for geographic data."""
+    try:
+        plt.figure(figsize=(max(12, len(pivot_data.columns)*0.5), max(8, len(pivot_data.index)*0.4)))
+        sns.heatmap(pivot_data, cmap='Reds', annot=False, cbar_kws={'label': 'Cases'})
+        plt.title(title.replace('<br>', '\n'))
+        plt.xlabel('Districts')
+        plt.ylabel('States')
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.show()
+        print("✅ Fallback geographic heatmap generated!")
+        return True
+    except Exception as e:
+        print(f"❌ Fallback heatmap failed: {e}")
+        return False
+
+
+def create_fallback_state_heatmap(heatmap_data):
+    """Fallback matplotlib heatmap for state comparison."""
+    try:
+        plt.figure(figsize=(15, 10))
+        sns.heatmap(heatmap_data, cmap='Reds', annot=False, cbar_kws={'label': 'Cases'})
+        plt.title('State vs Crime Type Comparison')
+        plt.xlabel('Crime Types')
+        plt.ylabel('States')
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.show()
+        print("✅ Fallback state heatmap generated!")
+        return True
+    except Exception as e:
+        print(f"❌ Fallback failed: {e}")
+        return False
+
+
+def create_fallback_district_heatmap(heatmap_data, state_name):
+    """Fallback matplotlib heatmap for district comparison."""
+    try:
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(heatmap_data, cmap='Reds', annot=False, cbar_kws={'label': 'Cases'})
+        plt.title(f'District vs Crime Type Comparison - {state_name}')
+        plt.xlabel('Crime Types')
+        plt.ylabel('Districts')
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.show()
+        print(f"✅ Fallback district heatmap generated for {state_name}!")
+        return True
+    except Exception as e:
+        print(f"❌ Fallback failed: {e}")
+        return False
+
+
+def test_heatmap_data(data):
+    """
+    Test function to diagnose heatmap data issues.
+    """
+    print("\n🔍 HEATMAP DATA DIAGNOSIS:")
+    print(f"📊 Data shape: {data.shape}")
+    
     crime_columns = [col for col in data.columns if col not in 
                     ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
     
-    if len(crime_columns) < 2:
-        print("Need at least 2 crime types for correlation heatmap.")
-        return
+    print(f"📋 Crime columns found: {len(crime_columns)}")
     
-    crime_data = data[crime_columns]
-    location_desc = f"{district_name}, {state_name}" if district_name != "all" else f"All Districts in {state_name}"
-    
-    if method == 'correlation':
-        # Correlation heatmap
-        corr_matrix = crime_data.corr()
+    if len(crime_columns) > 0:
+        print(f"📈 Sample crime columns: {crime_columns[:5]}")
         
-        fig = px.imshow(
-            corr_matrix,
-            text_auto=True,
-            aspect="auto",
-            title=f'🔥 Crime Correlation Heatmap - {location_desc}',
-            color_continuous_scale='RdYlBu_r',
-            zmin=-1, zmax=1
-        )
+        crime_data = data[crime_columns]
+        print(f"🔢 Crime data shape: {crime_data.shape}")
+        print(f"🚫 Columns with all zeros: {(crime_data == 0).all().sum()}")
+        print(f"❓ Columns with NaN: {crime_data.isnull().all().sum()}")
         
-        fig.update_layout(
-            height=600,
-            font=dict(size=10)
-        )
+        # Show sample statistics
+        non_zero_data = crime_data.loc[:, (crime_data != 0).any(axis=0)]
+        print(f"✅ Non-zero columns: {len(non_zero_data.columns)}")
         
-    else:
-        # Crime density heatmap by year
-        if 'Year' in data.columns:
-            yearly_data = data.groupby('Year')[crime_columns].sum()
-            
-            fig = px.imshow(
-                yearly_data.T,
-                text_auto=True,
-                aspect="auto",
-                title=f'🔥 Crime Density Heatmap by Year - {location_desc}',
-                labels=dict(x="Year", y="Crime Type", color="Cases"),
-                color_continuous_scale='Reds'
-            )
+        if len(non_zero_data.columns) >= 2:
+            corr_sample = non_zero_data.iloc[:, :5].corr() if len(non_zero_data.columns) >= 5 else non_zero_data.corr()
+            print(f"🔗 Sample correlation matrix shape: {corr_sample.shape}")
+            print("💡 Heatmap should work with this data!")
         else:
-            print("No Year column found for density heatmap.")
-            return
-    
-    fig.show()
-    print(f"✅ Heatmap generated for {location_desc}")
+            print("❌ Not enough non-zero columns for correlation heatmap")
+    else:
+        print("❌ No crime columns found!")
 
 
 def plot_stacked_bar_chart(data, state_name, district_name="all", top_crimes=8):
@@ -2334,7 +2749,49 @@ def handle_option_9_enhanced_visualizations(datasets):
         if viz_choice == "1":
             plot_pie_chart_crime_distribution(selected_data, state_name, district_name)
         elif viz_choice == "2":
-            plot_crime_heatmap(selected_data, state_name, district_name)
+            # Enhanced geographic heatmap options
+            print(f"\n🔥 GEOGRAPHIC HEATMAP OPTIONS for {location_desc}:")
+            print("1. 🗺️ Geographic Distribution (Crime across States/Districts)")
+            print("2. 🏛️ State Comparison (States vs Crime Types)")
+            print("3. 🏘️ District Comparison (Districts vs Crime Types)")
+            print("4. 📅 Year vs Location (Crime trends over time)")
+            print("5. 🎯 All Geographic Heatmaps")
+            
+            heatmap_choice = input("Choose heatmap type (1-5): ").strip()
+            
+            if heatmap_choice == "1":
+                plot_crime_heatmap(selected_data, state_name, district_name, method='geographic')
+            elif heatmap_choice == "2":
+                # Use full dataset for state comparison
+                plot_crime_heatmap(chosen_dataset_df, "All States", "all", method='state_comparison')
+            elif heatmap_choice == "3":
+                if district_name != "all":
+                    # Use full state data for district comparison
+                    state_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+                    plot_crime_heatmap(state_data, state_name, "all", method='district_comparison')
+                else:
+                    plot_crime_heatmap(selected_data, state_name, district_name, method='district_comparison')
+            elif heatmap_choice == "4":
+                plot_crime_heatmap(selected_data, state_name, district_name, method='year_location')
+            elif heatmap_choice == "5":
+                print("\n🗺️ Generating geographic distribution...")
+                plot_crime_heatmap(selected_data, state_name, district_name, method='geographic')
+                
+                print("\n🏛️ Generating state comparison...")
+                plot_crime_heatmap(chosen_dataset_df, "All States", "all", method='state_comparison')
+                
+                if state_name != "Multiple Locations":
+                    print(f"\n🏘️ Generating district comparison for {state_name}...")
+                    state_data = chosen_dataset_df[chosen_dataset_df['State Name'] == state_name]
+                    plot_crime_heatmap(state_data, state_name, "all", method='district_comparison')
+                
+                print("\n� Generating year vs location analysis...")
+                plot_crime_heatmap(selected_data, state_name, district_name, method='year_location')
+                
+                print("✅ All geographic heatmaps completed!")
+            else:
+                print("Invalid choice, generating geographic distribution by default...")
+                plot_crime_heatmap(selected_data, state_name, district_name, method='geographic')
         elif viz_choice == "3":
             plot_stacked_bar_chart(selected_data, state_name, district_name)
         elif viz_choice == "4":
