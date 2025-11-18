@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="Crime Analyser",
     page_icon="🚔",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Enhanced CSS for professional and interactive styling
@@ -345,6 +345,23 @@ def load_datasets():
 def show_home_page():
     """Display the professional home page"""
     
+    # Sliding Sidebar
+    with st.sidebar:
+        st.title("🚔 Crime Analyser")
+        st.markdown("---")
+        
+        if st.button("ℹ️ About", key="sidebar_about", help="Learn about Crime Analyser", use_container_width=True, type="primary"):
+            st.session_state.page = "about"
+            st.rerun()
+            
+        if st.button("✨ Features", key="sidebar_features", help="Explore platform features", use_container_width=True, type="primary"):
+            st.session_state.page = "features"
+            st.rerun()
+            
+        if st.button("🚀 Launch Analytics", key="sidebar_analytics", help="Launch Analytics Platform", use_container_width=True, type="primary"):
+            st.session_state.page = "analysis"
+            st.rerun()
+    
     # Professional Website Header
     st.markdown("""
     <div style="background: white; padding: 1rem 0; border-bottom: 1px solid #e0e0e0; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -353,11 +370,8 @@ def show_home_page():
                 <h2 style="margin: 0; color: #667eea; font-weight: 700; font-size: 1.8rem;">
                     🚔 Crime Analyser
                 </h2>
-                <span style="margin-left: 1rem; color: #888; font-size: 0.9rem;">Advanced Analytics Platform</span>
             </div>
             <div style="display: flex; align-items: center; gap: 2rem;">
-                <a href="#features" style="color: #666; text-decoration: none; font-weight: 500;">Features</a>
-                <a href="#analytics" style="color: #666; text-decoration: none; font-weight: 500;">Analytics</a>
                 <button onclick="document.getElementById('hero_launch').click();" style="
                     background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 50%, #45b7d1 100%);
                     color: white;
@@ -374,12 +388,11 @@ def show_home_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Add About button in top right
-    col1, col2, col3 = st.columns([8, 1, 1])
-    with col2:
-        if st.button("ℹ️ About", key="nav_about", help="Learn about Crime Analyser"):
-            st.session_state.page = "about"
-            st.rerun()
+    # Hidden About button for header functionality
+    if st.button("ℹ️ About", key="nav_about", help="Learn about Crime Analyser", type="secondary", use_container_width=False):
+        st.session_state.page = "about"
+        st.rerun()
+    st.markdown('<style>div[data-testid="stButton"]:has(button[kind="secondary"]) { display: none; }</style>', unsafe_allow_html=True)
     
     # Enhanced Hero Section with Interactive Elements
     st.markdown("""
@@ -670,11 +683,78 @@ def show_home_page():
                 Empowering law enforcement and policy makers with cutting-edge data intelligence
             </p>
             <p style="color: #888; font-size: 0.9rem;">
-                2024 Crime Analyser Platform | Data Coverage: 2017-2022<br>
+                2025 Crime Analyser Platform | Data Coverage: 2017-2022<br>
                 Built for safer communities through data-driven insights
             </p>
         </div>
         """, unsafe_allow_html=True)
+
+def show_features_page():
+    """Display the Features page with platform capabilities"""
+    
+    st.title("✨ Platform Features")
+    st.write("Explore our comprehensive crime analytics capabilities")
+    
+    if st.button("🏠 Back", key="features_back_home"):
+        st.session_state.page = "home"
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Main Features
+    st.subheader("🚀 Core Capabilities")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📈 Data Analytics")
+        st.write("• Single crime trend visualization")
+        st.write("• Multi-crime comparison charts")
+        st.write("• Time series analysis")
+        st.write("• Statistical modeling")
+        
+        st.markdown("")
+        
+        st.markdown("### 🌍 Geographic Intelligence")
+        st.write("• Multi-district comparisons")
+        st.write("• Cross-state analysis")
+        st.write("• Crime hotspot identification")
+        st.write("• Risk assessment mapping")
+    
+    with col2:
+        st.markdown("### 📊 Advanced Insights")
+        st.write("• District risk scoring")
+        st.write("• Pattern recognition")
+        st.write("• Predictive modeling")
+        st.write("• Correlation analysis")
+        
+        st.markdown("")
+        
+        st.markdown("### 🔍 Interactive Tools")
+        st.write("• Dynamic dashboards")
+        st.write("• Real-time filtering")
+        st.write("• Custom visualizations")
+        st.write("• Data export options")
+    
+    st.markdown("---")
+    
+    # Additional Info
+    st.subheader("📋 Dataset Coverage")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.info("**5** Crime Categories")
+    with col2:
+        st.info("**35+** States & UTs")
+    with col3:
+        st.info("**700+** Districts")
+    
+    st.markdown("---")
+    
+    st.write("Ready to explore crime data insights?")
+    if st.button("🚀 Launch Analytics", type="primary", key="features_try"):
+        st.session_state.page = "analysis"
+        st.rerun()
 
 def show_about_page():
     """Display the About page with project information"""
@@ -712,36 +792,19 @@ def show_about_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Mission & Vision
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(78, 205, 196, 0.1) 100%); padding: 2rem; border-radius: 15px; height: 280px;">
-            <h3 style="color: #ff6b6b; margin-bottom: 1rem; font-size: 1.8rem;">🎯 Our Mission</h3>
-            <p style="font-size: 1.1rem; line-height: 1.7; color: #555;">
-                To democratize access to crime data analytics and empower stakeholders with data-driven insights 
-                for creating safer communities through evidence-based decision making and proactive crime prevention strategies.
-            </p>
-            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 107, 107, 0.1); border-radius: 10px;">
-                <strong style="color: #ff6b6b;">📊 Data-Driven • 🔒 Security-Focused • 🌐 Community-Centered</strong>
-            </div>
+    # Mission
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(78, 205, 196, 0.1) 100%); padding: 2rem; border-radius: 15px; margin: 2rem 0;">
+        <h3 style="color: #ff6b6b; margin-bottom: 1rem; font-size: 1.8rem;">🎯 Our Mission</h3>
+        <p style="font-size: 1.1rem; line-height: 1.7; color: #555;">
+            To democratize access to crime data analytics and empower stakeholders with data-driven insights 
+            for creating safer communities through evidence-based decision making and proactive crime prevention strategies.
+        </p>
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 107, 107, 0.1); border-radius: 10px;">
+            <strong style="color: #ff6b6b;">📊 Data-Driven • 🔒 Security-Focused • 🌐 Community-Centered</strong>
         </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, rgba(69, 183, 209, 0.1) 0%, rgba(150, 206, 180, 0.1) 100%); padding: 2rem; border-radius: 15px; height: 280px;">
-            <h3 style="color: #45b7d1; margin-bottom: 1rem; font-size: 1.8rem;">🔭 Our Vision</h3>
-            <p style="font-size: 1.1rem; line-height: 1.7; color: #555;">
-                To become India's leading crime analytics platform, fostering a data-informed approach to public safety 
-                and contributing to the creation of safer, more secure communities through advanced technology and intelligence.
-            </p>
-            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(69, 183, 209, 0.1); border-radius: 10px;">
-                <strong style="color: #45b7d1;">🚀 Innovation • 🤝 Collaboration • 🎆 Impact</strong>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
     
     # Key Features
     st.markdown("""
@@ -894,7 +957,7 @@ def show_about_page():
     st.markdown("""
     <div style="text-align: center; padding: 2rem; margin-top: 3rem; background: #f8f9fa; border-radius: 15px; color: #666;">
         <p style="margin: 0; font-weight: 600; color: #667eea;">🔒 Crime Analyser - Advanced Analytics Platform</p>
-        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Empowering safer communities through data intelligence | 2024</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Empowering safer communities through data intelligence | 2025</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -949,11 +1012,35 @@ def show_analysis_page():
 def show_enhanced_analysis_interface(datasets):
     """Show the enhanced main analysis interface with professional styling"""
     
-    # Enhanced analysis type selection with cards
+    # Professional analytics overview section with elegant colors
     st.markdown("""
-    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); padding: 2rem; border-radius: 15px; margin-bottom: 2rem;">
-        <h2 style="text-align: center; color: #667eea; margin-bottom: 1rem;">🔍 Select Analysis Type</h2>
-        <p style="text-align: center; color: #666; font-size: 1.1rem;">Choose from our comprehensive suite of crime data analysis tools</p>
+    <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 25%, rgba(59, 130, 246, 0.12) 50%, rgba(16, 185, 129, 0.12) 75%, rgba(245, 158, 11, 0.12) 100%); 
+                padding: 3rem; border-radius: 25px; margin-bottom: 2.5rem; 
+                border: 1px solid rgba(99, 102, 241, 0.2);
+                box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05);">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 25%, #3b82f6 50%, #10b981 75%, #f59e0b 100%);
+                       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+                       margin-bottom: 1rem; font-size: 2.5rem; font-weight: 800;">🔍 Advanced Crime Analytics Suite</h2>
+            <p style="color: #64748b; font-size: 1.3rem; max-width: 850px; margin: 0 auto 2rem; font-weight: 500;">Choose from our comprehensive suite of professional-grade crime data analysis tools</p>
+            <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 2rem;">
+                <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%); 
+                            padding: 1rem 2rem; border-radius: 30px; font-weight: 700; color: #6366f1;
+                            border: 1px solid rgba(99, 102, 241, 0.2); box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);">
+                    🎯 Precision Analytics
+                </div>
+                <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%); 
+                            padding: 1rem 2rem; border-radius: 30px; font-weight: 700; color: #8b5cf6;
+                            border: 1px solid rgba(139, 92, 246, 0.2); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.15);">
+                    📊 Real-time Insights
+                </div>
+                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%); 
+                            padding: 1rem 2rem; border-radius: 30px; font-weight: 700; color: #10b981;
+                            border: 1px solid rgba(16, 185, 129, 0.2); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);">
+                    🔬 Statistical Modeling
+                </div>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -971,19 +1058,48 @@ def show_enhanced_analysis_interface(datasets):
         {"name": "District Risk Scoring", "icon": "🎯", "desc": "Calculate comprehensive risk scores (NEW!)", "color": "#FF4500"}
     ]
     
-    # Create analysis selection cards in a grid
-    cols = st.columns(3)
+    # Interactive analysis cards with enhanced styling
+    st.markdown("""
+    <div style="margin: 2rem 0;">
+        <h3 style="text-align: center; color: #667eea; margin-bottom: 2rem; font-size: 1.8rem;">📈 Analysis Categories</h3>
+    </div>
+    """, unsafe_allow_html=True)
     
-    for i, option in enumerate(analysis_options):
-        with cols[i % 3]:
-            if st.button(
-                f"{option['icon']} {option['name']}",
-                key=f"analysis_{i}",
-                help=option['desc'],
-                use_container_width=True
-            ):
-                st.session_state.selected_analysis = option['name']
-                st.rerun()
+    # Group analysis options by category
+    categories = {
+        "📊 Statistical Analysis": [0, 3, 9],  # Single Trend, Descriptive Stats, Risk Scoring
+        "🔄 Comparative Analysis": [1, 2, 4, 6, 7],  # Multiple Crimes, Multi-District, Bar Chart, Cross-Dataset, Cross-State
+        "🎨 Advanced Visualizations": [5, 8]  # Hotspots, Enhanced Viz
+    }
+    
+    category_colors = {
+        "📊 Statistical Analysis": {"bg": "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.02) 100%)", "border": "#6366f1", "text": "#6366f1"},
+        "🔄 Comparative Analysis": {"bg": "linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 100%)", "border": "#8b5cf6", "text": "#8b5cf6"},
+        "🎨 Advanced Visualizations": {"bg": "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)", "border": "#10b981", "text": "#10b981"}
+    }
+    
+    for category, indices in categories.items():
+        colors = category_colors[category]
+        st.markdown(f"""
+        <div style="background: {colors['bg']}; padding: 1rem 1.5rem; border-radius: 20px; margin: 1.5rem 0; 
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-left: 5px solid {colors['border']};
+                    border: 1px solid {colors['border']}33;">
+            <h4 style="color: {colors['text']}; margin-bottom: 0.5rem; font-size: 1.4rem; font-weight: 700;">{category}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        cols = st.columns(len(indices))
+        for col_idx, option_idx in enumerate(indices):
+            option = analysis_options[option_idx]
+            with cols[col_idx]:
+                if st.button(
+                    f"{option['icon']} {option['name']}",
+                    key=f"analysis_{option_idx}",
+                    help=f"{option['desc']} - {option['name']} provides detailed insights for data-driven decision making.",
+                    use_container_width=True
+                ):
+                    st.session_state.selected_analysis = option['name']
+                    st.rerun()
     
     # Show selected analysis interface
     if hasattr(st.session_state, 'selected_analysis'):
@@ -1006,22 +1122,71 @@ def show_enhanced_analysis_interface(datasets):
         from streamlit_main import main as analysis_main
         analysis_main()
     else:
-        # Show welcome message when no analysis is selected
+        # Enhanced welcome section with elegant colors
         st.markdown("""
-        <div style="text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 15px; margin: 2rem 0;">
-            <h3 style="color: #667eea;">👆 Select an Analysis Type Above</h3>
-            <p style="color: #666; font-size: 1.1rem;">Choose from our comprehensive analysis tools to start exploring crime data patterns and insights.</p>
-            <div style="margin-top: 2rem;">
-                <p style="color: #888; font-size: 0.9rem;">✨ Interactive visualizations • 📊 Statistical analysis • 🗺️ Geographic insights</p>
+        <div style="background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%); 
+                    padding: 4rem; border-radius: 25px; margin: 2rem 0;
+                    border: 1px solid rgba(99, 102, 241, 0.15); 
+                    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05);">
+            <div style="text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 1.5rem; 
+                            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #10b981 100%);
+                            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">🚀</div>
+                <h3 style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #10b981 100%);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+                           margin-bottom: 1.5rem; font-size: 2.5rem; font-weight: 800;">Ready to Analyze Crime Data?</h3>
+                <p style="color: #64748b; font-size: 1.3rem; margin-bottom: 3rem; max-width: 700px; margin-left: auto; margin-right: auto; font-weight: 500;">
+                    Select an analysis type above to start exploring comprehensive crime data patterns, trends, and insights with our advanced analytics platform.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; margin-top: 3rem;">
+                    <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%); 
+                                padding: 2rem; border-radius: 20px; 
+                                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
+                                border: 1px solid rgba(99, 102, 241, 0.1);">
+                        <div style="font-size: 2.5rem; margin-bottom: 1rem;">📊</div>
+                        <h4 style="color: #6366f1; margin-bottom: 0.8rem; font-weight: 700;">Statistical Analysis</h4>
+                        <p style="color: #64748b; font-size: 1rem; font-weight: 500;">Advanced statistical modeling and trend analysis</p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%); 
+                                padding: 2rem; border-radius: 20px; 
+                                box-shadow: 0 10px 30px rgba(139, 92, 246, 0.1);
+                                border: 1px solid rgba(139, 92, 246, 0.1);">
+                        <div style="font-size: 2.5rem; margin-bottom: 1rem;">🗺️</div>
+                        <h4 style="color: #8b5cf6; margin-bottom: 0.8rem; font-weight: 700;">Geographic Intelligence</h4>
+                        <p style="color: #64748b; font-size: 1rem; font-weight: 500;">Multi-state and district-level comparisons</p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%); 
+                                padding: 2rem; border-radius: 20px; 
+                                box-shadow: 0 10px 30px rgba(16, 185, 129, 0.1);
+                                border: 1px solid rgba(16, 185, 129, 0.1);">
+                        <div style="font-size: 2.5rem; margin-bottom: 1rem;">🎨</div>
+                        <h4 style="color: #10b981; margin-bottom: 0.8rem; font-weight: 700;">Interactive Visualizations</h4>
+                        <p style="color: #64748b; font-size: 1rem; font-weight: 500;">Dynamic charts and real-time insights</p>
+                    </div>
+                </div>
+                <div style="margin-top: 3rem; padding: 1.5rem; 
+                            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%); 
+                            border-radius: 15px; border: 1px solid rgba(99, 102, 241, 0.15);">
+                    <p style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                              -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+                              font-weight: 700; margin: 0; font-size: 1.1rem;">💡 Pro Tip: Start with 'Descriptive Statistics' for an overview, then explore specific analysis types for deeper insights</p>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
     
-    # Enhanced footer
+    # Enhanced footer with elegant styling
     st.markdown("""
-    <div style="text-align: center; padding: 2rem; margin-top: 3rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; border-top: 3px solid #667eea;">
-        <p style="color: #667eea; margin: 0; font-weight: bold; font-size: 1.1rem;">🔬 Crime Analyser - Advanced Analytics Platform</p>
-        <p style="color: #888; margin: 0.5rem 0 0 0; font-size: 0.9rem;">Powered by Python, Streamlit & Advanced Data Science | Data Coverage: 2017-2022</p>
+    <div style="text-align: center; padding: 3rem; margin-top: 4rem; 
+                background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%); 
+                border-radius: 20px; 
+                border-top: 4px solid transparent;
+                border-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #10b981 100%) 1;
+                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.08);">
+        <p style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #10b981 100%);
+                  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+                  margin: 0; font-weight: 800; font-size: 1.3rem;">🔬 Crime Analyser - Advanced Analytics Platform</p>
+        <p style="color: #64748b; margin: 1rem 0 0 0; font-size: 1rem; font-weight: 500;">Powered by Python, Streamlit & Advanced Data Science | Data Coverage: 2017-2022</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1038,6 +1203,8 @@ def main():
         show_analysis_page()
     elif st.session_state.page == "about":
         show_about_page()
+    elif st.session_state.page == "features":
+        show_features_page()
 
 if __name__ == "__main__":
     main()

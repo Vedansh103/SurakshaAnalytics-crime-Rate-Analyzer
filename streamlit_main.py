@@ -1069,8 +1069,7 @@ def compare_states_streamlit(datasets, selected_dataset_name, selected_crime_typ
         st.pyplot(fig)
 
 def main():
-    st.title("🚀 Crime Analyser")
-    st.markdown("**Comprehensive District-wise Crime Data Analysis Platform for India (2017-2022)**")
+    pass  # Header removed as requested
     
     # Load datasets
     with st.spinner("Loading datasets..."):
@@ -1119,7 +1118,6 @@ def main():
         
         # Show the selected analysis in main area
         st.write(f"**Selected Analysis:** {selected_analysis}")
-        st.write("*Selected from top*")
     else:
         selected_analysis = st.selectbox(
             "Choose Analysis Type:",
@@ -1579,9 +1577,11 @@ def main():
                             # Show states with most high-risk districts
                             high_risk_districts = risk_df[risk_df['Risk_Score'] >= 60]
                             if len(high_risk_districts) > 0:
+                                state_counts = high_risk_districts['State'].value_counts().head(5)
+                                states_text = ", ".join([f"{state}: {count}" for state, count in state_counts.items()])
                                 st.info(f"""
                                 **States with Most High-Risk Districts:**
-                                {high_risk_districts['State'].value_counts().head(5).to_dict()}
+                                {states_text}
                                 """)
     
     elif selected_analysis == "Cross-State Analysis":
