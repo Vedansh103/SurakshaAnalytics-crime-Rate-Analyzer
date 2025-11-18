@@ -358,7 +358,6 @@ def show_home_page():
             <div style="display: flex; align-items: center; gap: 2rem;">
                 <a href="#features" style="color: #666; text-decoration: none; font-weight: 500;">Features</a>
                 <a href="#analytics" style="color: #666; text-decoration: none; font-weight: 500;">Analytics</a>
-                <a href="#about" style="color: #666; text-decoration: none; font-weight: 500;">About</a>
                 <button onclick="document.getElementById('hero_launch').click();" style="
                     background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 50%, #45b7d1 100%);
                     color: white;
@@ -374,6 +373,13 @@ def show_home_page():
         </div>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Add About button in top right
+    col1, col2, col3 = st.columns([8, 1, 1])
+    with col2:
+        if st.button("ℹ️ About", key="nav_about", help="Learn about Crime Analyser"):
+            st.session_state.page = "about"
+            st.rerun()
     
     # Enhanced Hero Section with Interactive Elements
     st.markdown("""
@@ -670,6 +676,228 @@ def show_home_page():
         </div>
         """, unsafe_allow_html=True)
 
+def show_about_page():
+    """Display the About page with project information"""
+    
+    # About page header
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
+        <div style="color: white; text-align: center;">
+            <h1 style="margin: 0; font-size: 3rem; font-weight: 800;">📊 About Crime Analyser</h1>
+            <p style="margin: 1rem 0 0 0; opacity: 0.9; font-size: 1.3rem;">Advanced Crime Data Intelligence Platform</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Back to home button
+    col1, col2, col3 = st.columns([1, 6, 1])
+    with col1:
+        if st.button("🏠 Home", key="about_back_home", help="Return to homepage"):
+            st.session_state.page = "home"
+            st.rerun()
+    
+    # Project Overview
+    st.markdown("""
+    <div style="background: white; padding: 2.5rem; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); margin: 2rem 0;">
+        <h2 style="color: #667eea; margin-bottom: 1.5rem; font-size: 2.2rem;">🎯 Project Overview</h2>
+        <p style="font-size: 1.2rem; line-height: 1.8; color: #444; margin-bottom: 1.5rem;">
+            <strong>Crime Analyser</strong> is a comprehensive data intelligence platform designed to empower law enforcement agencies, 
+            policy makers, and researchers with advanced crime analytics capabilities across India.
+        </p>
+        <p style="font-size: 1.1rem; line-height: 1.7; color: #666;">
+            Our platform processes and analyzes over <strong>20,000+ crime records</strong> spanning <strong>35+ Indian states</strong> 
+            and <strong>700+ districts</strong>, covering the period from <strong>2017-2022</strong>. We provide actionable insights 
+            through interactive visualizations, statistical analysis, and predictive modeling.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Mission & Vision
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(78, 205, 196, 0.1) 100%); padding: 2rem; border-radius: 15px; height: 280px;">
+            <h3 style="color: #ff6b6b; margin-bottom: 1rem; font-size: 1.8rem;">🎯 Our Mission</h3>
+            <p style="font-size: 1.1rem; line-height: 1.7; color: #555;">
+                To democratize access to crime data analytics and empower stakeholders with data-driven insights 
+                for creating safer communities through evidence-based decision making and proactive crime prevention strategies.
+            </p>
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 107, 107, 0.1); border-radius: 10px;">
+                <strong style="color: #ff6b6b;">📊 Data-Driven • 🔒 Security-Focused • 🌐 Community-Centered</strong>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(69, 183, 209, 0.1) 0%, rgba(150, 206, 180, 0.1) 100%); padding: 2rem; border-radius: 15px; height: 280px;">
+            <h3 style="color: #45b7d1; margin-bottom: 1rem; font-size: 1.8rem;">🔭 Our Vision</h3>
+            <p style="font-size: 1.1rem; line-height: 1.7; color: #555;">
+                To become India's leading crime analytics platform, fostering a data-informed approach to public safety 
+                and contributing to the creation of safer, more secure communities through advanced technology and intelligence.
+            </p>
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(69, 183, 209, 0.1); border-radius: 10px;">
+                <strong style="color: #45b7d1;">🚀 Innovation • 🤝 Collaboration • 🎆 Impact</strong>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Key Features
+    st.markdown("""
+    <div style="background: white; padding: 2.5rem; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); margin: 2rem 0;">
+        <h2 style="color: #667eea; margin-bottom: 2rem; font-size: 2.2rem; text-align: center;">🚀 Platform Capabilities</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div style="text-align: center; padding: 1.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <h4 style="color: #667eea; margin-bottom: 1rem;">Advanced Analytics</h4>
+            <ul style="text-align: left; color: #666; line-height: 1.8;">
+                <li>Time series analysis</li>
+                <li>Statistical modeling</li>
+                <li>Trend identification</li>
+                <li>Correlation analysis</li>
+                <li>Predictive insights</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="text-align: center; padding: 1.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🗺️</div>
+            <h4 style="color: #4facfe; margin-bottom: 1rem;">Geographic Intelligence</h4>
+            <ul style="text-align: left; color: #666; line-height: 1.8;">
+                <li>Multi-state comparisons</li>
+                <li>District-level analysis</li>
+                <li>Hotspot identification</li>
+                <li>Spatial patterns</li>
+                <li>Risk assessment</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style="text-align: center; padding: 1.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🎨</div>
+            <h4 style="color: #43e97b; margin-bottom: 1rem;">Interactive Visualizations</h4>
+            <ul style="text-align: left; color: #666; line-height: 1.8;">
+                <li>Dynamic dashboards</li>
+                <li>Real-time charts</li>
+                <li>Custom reports</li>
+                <li>Export capabilities</li>
+                <li>Mobile responsive</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Technical Stack
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%); padding: 2.5rem; border-radius: 20px; margin: 2rem 0;">
+        <h2 style="color: #667eea; margin-bottom: 2rem; font-size: 2.2rem; text-align: center;">🛠️ Technical Architecture</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                <h4 style="color: #ff6b6b; margin-bottom: 1rem;">🐍 Backend</h4>
+                <p style="color: #666;">Python, Pandas, NumPy, SciPy</p>
+            </div>
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                <h4 style="color: #4ecdc4; margin-bottom: 1rem;">📊 Visualization</h4>
+                <p style="color: #666;">Plotly, Matplotlib, Seaborn</p>
+            </div>
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                <h4 style="color: #45b7d1; margin-bottom: 1rem;">🌐 Frontend</h4>
+                <p style="color: #666;">Streamlit, HTML5, CSS3</p>
+            </div>
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                <h4 style="color: #96ceb4; margin-bottom: 1rem;">🤖 AI/ML</h4>
+                <p style="color: #666;">Recommendation Engine, Smart Insights</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Data Coverage
+    st.markdown("""
+    <div style="background: white; padding: 2.5rem; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); margin: 2rem 0;">
+        <h2 style="color: #667eea; margin-bottom: 2rem; font-size: 2.2rem; text-align: center;">📊 Data Coverage & Statistics</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Load and display actual statistics
+    datasets = load_datasets()
+    if datasets:
+        total_records = sum(len(df) for df in datasets.values())
+        total_states = len(set().union(*[df['State Name'].unique() for df in datasets.values()]))
+        total_districts = len(set().union(*[df['District Name'].unique() for df in datasets.values()]))
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8a80 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📁</div>
+                <div style="font-size: 2.2rem; font-weight: 800;">{len(datasets)}</div>
+                <div style="font-size: 1.1rem; opacity: 0.9;">Datasets</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 20px rgba(78, 205, 196, 0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊</div>
+                <div style="font-size: 2.2rem; font-weight: 800;">{total_records:,}</div>
+                <div style="font-size: 1.1rem; opacity: 0.9;">Records</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #45b7d1 0%, #2196f3 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 20px rgba(69, 183, 209, 0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🗺️</div>
+                <div style="font-size: 2.2rem; font-weight: 800;">{total_states}</div>
+                <div style="font-size: 1.1rem; opacity: 0.9;">States/UTs</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #96ceb4 0%, #4caf50 100%); color: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 8px 20px rgba(150, 206, 180, 0.3);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏘️</div>
+                <div style="font-size: 2.2rem; font-weight: 800;">{total_districts}</div>
+                <div style="font-size: 1.1rem; opacity: 0.9;">Districts</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Call to Action
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3rem 2rem; border-radius: 20px; margin: 3rem 0; text-align: center; color: white;">
+        <h2 style="margin-bottom: 1rem; font-size: 2.2rem;">🚀 Ready to Explore Crime Intelligence?</h2>
+        <p style="font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9;">
+            Join law enforcement professionals and researchers using our platform for data-driven insights
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("📊 Launch Analytics Platform", type="primary", use_container_width=True, key="about_launch"):
+            st.session_state.page = "analysis"
+            st.rerun()
+    
+    # Footer
+    st.markdown("""
+    <div style="text-align: center; padding: 2rem; margin-top: 3rem; background: #f8f9fa; border-radius: 15px; color: #666;">
+        <p style="margin: 0; font-weight: 600; color: #667eea;">🔒 Crime Analyser - Advanced Analytics Platform</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Empowering safer communities through data intelligence | 2024</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 def show_analysis_page():
     """Display the enhanced analysis page"""
     
@@ -808,6 +1036,8 @@ def main():
         show_home_page()
     elif st.session_state.page == "analysis":
         show_analysis_page()
+    elif st.session_state.page == "about":
+        show_about_page()
 
 if __name__ == "__main__":
     main()

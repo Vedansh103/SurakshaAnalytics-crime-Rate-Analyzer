@@ -1111,19 +1111,15 @@ def main():
             "Crime Hotspots": "Crime Hotspots",
             "Cross-Dataset Comparison": "Cross-Dataset Comparison",
             "Cross-State Analysis": "Cross-State Analysis",
-            "Enhanced Visualizations": "Enhanced Visualizations"
+            "Enhanced Visualizations": "Enhanced Visualizations",
+            "District Risk Scoring": "District Risk Scoring"
         }
         
         selected_analysis = analysis_mapping.get(st.session_state.analysis_type, "Single Crime Trend")
         
         # Show the selected analysis in main area
         st.write(f"**Selected Analysis:** {selected_analysis}")
-        st.write("*Selected from home page*")
-        
-        # Option to change analysis type
-        if st.button("Change Analysis Type"):
-            del st.session_state.analysis_type
-            st.rerun()
+        st.write("*Selected from top*")
     else:
         selected_analysis = st.selectbox(
             "Choose Analysis Type:",
