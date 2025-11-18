@@ -719,8 +719,8 @@ def main():
     
 
     
-    # Sidebar for analysis type selection
-    st.sidebar.header("🎯 Analysis Configuration")
+    # Analysis type selection
+    st.header("🎯 Analysis Configuration")
     
     analysis_options = {
         "Single Crime Trend": "Plot trend for one crime in selected location",
@@ -734,7 +734,7 @@ def main():
         "Enhanced Visualizations": "Interactive pie charts, heatmaps, and advanced plots"
     }
     
-    # Use analysis type from home page if available, otherwise use sidebar selection
+    # Use analysis type from home page if available, otherwise use main selection
     if 'analysis_type' in st.session_state and st.session_state.analysis_type:
         # Map the analysis type from home page to match the options
         analysis_mapping = {
@@ -751,22 +751,22 @@ def main():
         
         selected_analysis = analysis_mapping.get(st.session_state.analysis_type, "Single Crime Trend")
         
-        # Show the selected analysis in sidebar but make it read-only
-        st.sidebar.write(f"**Selected Analysis:** {selected_analysis}")
-        st.sidebar.write("*Selected from home page*")
+        # Show the selected analysis in main area
+        st.write(f"**Selected Analysis:** {selected_analysis}")
+        st.write("*Selected from home page*")
         
         # Option to change analysis type
-        if st.sidebar.button("Change Analysis Type"):
+        if st.button("Change Analysis Type"):
             del st.session_state.analysis_type
             st.rerun()
     else:
-        selected_analysis = st.sidebar.selectbox(
+        selected_analysis = st.selectbox(
             "Choose Analysis Type:",
             list(analysis_options.keys()),
             help="Select the type of analysis you want to perform"
         )
     
-    st.sidebar.write(f"**Description:** {analysis_options[selected_analysis]}")
+    st.write(f"**Description:** {analysis_options[selected_analysis]}")
     
     # Main analysis based on selection
     if selected_analysis == "Single Crime Trend":
@@ -1134,22 +1134,25 @@ def main():
     st.markdown("**Crime Analyser** - Crime Data Analysis Platform for India | Data: 2017-2022")
     st.markdown("*Enhanced with Smart Crime Selection and Categorization*")
     
-    # Additional Analysis Tools in sidebar
-    with st.sidebar:
-        st.markdown("---")
-        st.subheader("🔧 Additional Tools")
+    # Additional Analysis Tools
+    st.markdown("---")
+    st.subheader("🔧 Additional Tools")
+    
+    if st.button("📊 Analyze All Crime Types"):
+        total_crimes = 0
+        unique_crimes = set()
         
-        if st.button("📊 Analyze All Crime Types"):
-            total_crimes = 0
-            unique_crimes = set()
-            
-            for dataset_name, dataset_df in datasets.items():
-                crime_cols = get_crime_columns(dataset_df)
-                total_crimes += len(crime_cols)
-                unique_crimes.update(crime_cols)
-            
+        for dataset_name, dataset_df in datasets.items():
+            crime_cols = get_crime_columns(dataset_df)
+            total_crimes += len(crime_cols)
+            unique_crimes.update(crime_cols)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
             st.metric("Total Crime Types", total_crimes)
+        with col2:
             st.metric("Unique Crime Types", len(unique_crimes))
+        with col3:
             st.metric("Total Datasets", len(datasets))
 
 if __name__ == "__main__":

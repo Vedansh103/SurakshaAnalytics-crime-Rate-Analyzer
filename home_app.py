@@ -110,6 +110,10 @@ st.markdown("""
         margin: 2rem 0;
         position: relative;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
     }
     
     .hero-section::before {
@@ -383,7 +387,7 @@ def show_home_page():
         <p class="hero-description">
             Unlock powerful insights from comprehensive crime data across Indian states and districts. 
             Analyze trends, identify hotspots, and make data-driven decisions with our cutting-edge analytics platform 
-            powered by machine learning and advanced statistical methods.
+            powered by advanced statistical methods and data visualization.
         </p>
         <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
             <div style="background: rgba(102, 126, 234, 0.1); padding: 0.8rem 1.5rem; border-radius: 25px; font-weight: 600; color: #667eea;">
@@ -393,7 +397,7 @@ def show_home_page():
                 🌍 Multi-state Coverage
             </div>
             <div style="background: rgba(102, 126, 234, 0.1); padding: 0.8rem 1.5rem; border-radius: 25px; font-weight: 600; color: #667eea;">
-                🔥 AI-powered Insights
+                🔥 Data-driven Insights
             </div>
         </div>
     </div>
@@ -455,10 +459,10 @@ def show_home_page():
         st.markdown("""
         <div class="feature-card" style="height: 320px; display: flex; flex-direction: column; justify-content: space-between;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">🔥</div>
-            <h3 style="color: #45b7d1; font-weight: 600; margin-bottom: 1rem;">AI-Powered Hotspots</h3>
-            <p style="color: #666; line-height: 1.6; flex-grow: 1;">Advanced machine learning algorithms for crime hotspot identification with risk assessment and predictive analytics for proactive law enforcement.</p>
+            <h3 style="color: #45b7d1; font-weight: 600; margin-bottom: 1rem;">Crime Hotspots</h3>
+            <p style="color: #666; line-height: 1.6; flex-grow: 1;">Advanced statistical analysis for crime hotspot identification with risk assessment and data analytics for proactive law enforcement.</p>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #888;">
-                🤖 AI-Powered • ⚠️ Risk Assessment • 🔮 Predictive
+                📊 Statistical • ⚠️ Risk Assessment • 🔮 Predictive
             </div>
         </div>
         """, unsafe_allow_html=True)
