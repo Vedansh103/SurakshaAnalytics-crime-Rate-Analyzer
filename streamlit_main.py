@@ -137,6 +137,370 @@ def categorize_crimes(crime_columns):
     # Remove empty categories
     return {k: v for k, v in categories.items() if v}
 
+# Crime Categories for Risk Scoring
+CRIME_CATEGORIES = {
+    'Violent Crimes': [
+        'murder', 'culpable homicide not amounting to murder', 'attempt to murder',
+        'causing death by negligence', 'rape', 'attempt to commit rape', 'custodial rape',
+        'other rape', 'kidnapping and abduction', 'kidnapping and abduction of women and girls',
+        'kidnapping and abduction of others', 'dacoity', 'preparation and assembly for dacoity',
+        'robbery', 'riots', 'criminal intimidation', 'assault on women with intent to outrage her modesty',
+        'insult to modesty of women', 'cruelty by husband or his relatives', 'importation of girls from foreign countries',
+        'causing hurt', 'grievous hurt', 'dowry deaths', 'assault on public servant to deter him from duty',
+        'voluntarily causing hurt to deter public servant from duty'
+    ],
+    'Property Crimes': [
+        'theft', 'auto theft', 'burglary', 'criminal breach of trust', 'cheating',
+        'counterfeiting', 'arson', 'mischief', 'criminal trespass', 'house-breaking',
+        'house trespass', 'theft by servant', 'dishonest misappropriation of property',
+        'receiving stolen property', 'criminal misappropriation', 'breach of trust by public servant',
+        'breach of trust by banker, merchant or agent'
+    ],
+    'Economic Crimes': [
+        'criminal breach of trust', 'cheating', 'counterfeiting', 'forgery',
+        'forgery of valuable security, will, etc', 'forgery for purpose of cheating',
+        'using as genuine a forged document', 'currency offences', 'breach of trust by public servant',
+        'breach of trust by banker, merchant or agent', 'dishonest misappropriation of property',
+        'criminal misappropriation', 'preparing false evidence'
+    ],
+    'Public Order Crimes': [
+        'riots', 'unlawful assembly', 'promoting enmity between different groups',
+        'imputations, assertions prejudicial to national-integration', 'public nuisance',
+        'negligent conduct with respect to machinery', 'negligent conduct with respect to fire or combustible matter',
+        'disobedience to order duly promulgated by public servant', 'threat of injury to public servant',
+        'public servant disobeying direction of law', 'public servant framing an incorrect document'
+    ],
+    'Cyber Crimes': [
+        'cyber crimes', 'cybercrime', 'online fraud', 'identity theft', 'hacking',
+        'cyber stalking', 'cyber bullying', 'online harassment', 'data theft',
+        'credit card fraud', 'internet fraud', 'phishing', 'malware'
+    ],
+    'Women & Children Crimes': [
+        'rape', 'attempt to commit rape', 'custodial rape', 'other rape',
+        'assault on women with intent to outrage her modesty', 'insult to modesty of women',
+        'cruelty by husband or his relatives', 'dowry deaths', 'importation of girls from foreign countries',
+        'kidnapping and abduction of women and girls', 'selling of girls for prostitution',
+        'buying of girls for prostitution', 'trafficking', 'immoral traffic (prevention) act',
+        'protection of children from sexual offences act', 'child marriage', 'juvenile crimes'
+    ]
+}
+
+# Risk Score Weights
+RISK_WEIGHTS = {
+    'Violent Crimes': 3.0,
+    'Women & Children Crimes': 2.8,
+    'Cyber Crimes': 2.0,
+    'Property Crimes': 1.5,
+    'Economic Crimes': 1.3,
+    'Public Order Crimes': 1.2,
+    'Drug & Substance': 1.8,
+    'Traffic & Vehicle': 1.0
+}
+
+def calculate_district_risk_score(district_data, crime_columns):
+    """
+    Calculate comprehensive risk score for a district.
+    Returns dict with overall score and components.
+    """
+    if district_data.empty:
+        return None
+    
+    risk_components = {}
+    
+    # 1. Crime Volume Score (0-30 points)
+    total_crimes = district_data[crime_columns].sum().sum()
+    volume_score = min(30, (total_crimes / 1000) * 10)
+    risk_components['volume'] = volume_score
+    
+    # 2. Crime Severity Score (0-40 points)
+    severity_score = 0
+    for category, crimes in CRIME_CATEGORIES.items():
+        weight = RISK_WEIGHTS.get(category, 1.0)
+        category_total = 0
+        
+        for col in crime_columns:
+            col_lower = col.lower()
+            for crime_keyword in crimes:
+                if crime_keyword.lower() in col_lower:
+                    category_total += district_data[col].sum()
+                    break
+        
+        severity_score += (category_total / max(1, total_crimes)) * weight * 40
+    
+    risk_components['severity'] = min(40, severity_score)
+    
+    # 3. Growth Trend Score (0-20 points)
+    if 'Year' in district_data.columns and len(district_data['Year'].unique()) >= 2:
+        yearly_totals = district_data.groupby('Year')[crime_columns].sum().sum(axis=1)
+        if len(yearly_totals) >= 2:
+            recent_year = yearly_totals.iloc[-1]
+            previous_year = yearly_totals.iloc[-2]
+            
+            if previous_year > 0:
+                growth_rate = ((recent_year - previous_year) / previous_year) * 100
+                trend_score = min(20, max(0, growth_rate * 2))
+            else:
+                trend_score = 10
+        else:
+            trend_score = 10
+    else:
+        trend_score = 10
+    
+    risk_components['trend'] = trend_score
+    
+    # 4. Crime Diversity Score (0-10 points)
+    non_zero_crimes = sum(1 for col in crime_columns if district_data[col].sum() > 0)
+    diversity_score = min(10, (non_zero_crimes / len(crime_columns)) * 10)
+    risk_components['diversity'] = diversity_score
+    
+    # Calculate overall risk score
+    overall_score = sum(risk_components.values())
+    
+    # Determine risk level
+    if overall_score >= 75:
+        risk_level = "🔴 EXTREME RISK"
+        color = "#FF0000"
+    elif overall_score >= 60:
+        risk_level = "🟠 HIGH RISK"
+        color = "#FF8C00"
+    elif overall_score >= 40:
+        risk_level = "🟡 MODERATE RISK"
+        color = "#FFD700"
+    elif overall_score >= 20:
+        risk_level = "🟢 LOW RISK"
+        color = "#32CD32"
+    else:
+        risk_level = "⚪ MINIMAL RISK"
+        color = "#808080"
+    
+    return {
+        'overall_score': round(overall_score, 2),
+        'risk_level': risk_level,
+        'color': color,
+        'components': {
+            'volume': round(volume_score, 2),
+            'severity': round(severity_score, 2),
+            'trend': round(trend_score, 2),
+            'diversity': round(diversity_score, 2)
+        },
+        'total_crimes': int(total_crimes),
+        'crime_types_active': non_zero_crimes
+    }
+
+def calculate_all_districts_risk_scores(dataset, state_name=None):
+    """
+    Calculate risk scores for all districts.
+    Returns a sorted DataFrame.
+    """
+    crime_columns = [col for col in dataset.columns if col not in 
+                    ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    
+    if not crime_columns:
+        return None
+    
+    if state_name:
+        dataset = dataset[dataset['State Name'] == state_name]
+    
+    if dataset.empty:
+        return None
+    
+    risk_scores = []
+    
+    for (state, district), group in dataset.groupby(['State Name', 'District Name']):
+        score_data = calculate_district_risk_score(group, crime_columns)
+        
+        if score_data:
+            risk_scores.append({
+                'State': state.title(),
+                'District': district.title(),
+                'Risk_Score': score_data['overall_score'],
+                'Risk_Level': score_data['risk_level'],
+                'Color': score_data['color'],
+                'Total_Crimes': score_data['total_crimes'],
+                'Volume_Score': score_data['components']['volume'],
+                'Severity_Score': score_data['components']['severity'],
+                'Trend_Score': score_data['components']['trend'],
+                'Diversity_Score': score_data['components']['diversity'],
+                'Active_Crime_Types': score_data['crime_types_active']
+            })
+    
+    if not risk_scores:
+        return None
+    
+    risk_df = pd.DataFrame(risk_scores)
+    risk_df = risk_df.sort_values('Risk_Score', ascending=False).reset_index(drop=True)
+    
+    return risk_df
+
+def plot_risk_score_visualizations_streamlit(risk_df, state_name=None):
+    """
+    Create comprehensive risk score visualizations for Streamlit.
+    """
+    if risk_df is None or risk_df.empty:
+        st.warning("No data to visualize.")
+        return
+    
+    top_districts = risk_df.head(20)
+    
+    # Create tabs for different visualizations
+    tab1, tab2, tab3, tab4 = st.tabs(["Risk Scores", "Component Breakdown", "Risk Distribution", "Crime Analysis"])
+    
+    with tab1:
+        st.subheader("🎯 Risk Score Rankings")
+        
+        # Horizontal bar chart with Plotly
+        fig = go.Figure()
+        
+        colors_map = {
+            '🔴 EXTREME RISK': '#FF0000',
+            '🟠 HIGH RISK': '#FF8C00',
+            '🟡 MODERATE RISK': '#FFD700',
+            '🟢 LOW RISK': '#32CD32',
+            '⚪ MINIMAL RISK': '#808080'
+        }
+        
+        bar_colors = [colors_map.get(level, '#808080') for level in top_districts['Risk_Level']]
+        
+        fig.add_trace(go.Bar(
+            y=top_districts['District'],
+            x=top_districts['Risk_Score'],
+            orientation='h',
+            marker=dict(color=bar_colors),
+            text=top_districts['Risk_Score'].round(1),
+            textposition='auto',
+            hovertemplate='<b>%{y}</b><br>Risk Score: %{x:.2f}<extra></extra>'
+        ))
+        
+        title_text = f"Top 20 Districts by Risk Score - {state_name.title()}" if state_name else "Top 20 Districts by Risk Score"
+        fig.update_layout(
+            title=title_text,
+            xaxis_title="Risk Score (0-100)",
+            yaxis_title="District",
+            height=700,
+            yaxis={'categoryorder':'total ascending'}
+        )
+        
+        # Add risk level lines
+        fig.add_vline(x=75, line_dash="dash", line_color="red", opacity=0.3, annotation_text="Extreme")
+        fig.add_vline(x=60, line_dash="dash", line_color="orange", opacity=0.3, annotation_text="High")
+        fig.add_vline(x=40, line_dash="dash", line_color="gold", opacity=0.3, annotation_text="Moderate")
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab2:
+        st.subheader("📊 Component Score Breakdown")
+        
+        components_df = top_districts.head(10)[['District', 'Volume_Score', 'Severity_Score', 'Trend_Score', 'Diversity_Score']]
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            name='Volume (30)',
+            x=components_df['District'],
+            y=components_df['Volume_Score'],
+            marker_color='#FF6B6B'
+        ))
+        
+        fig.add_trace(go.Bar(
+            name='Severity (40)',
+            x=components_df['District'],
+            y=components_df['Severity_Score'],
+            marker_color='#FFA07A'
+        ))
+        
+        fig.add_trace(go.Bar(
+            name='Trend (20)',
+            x=components_df['District'],
+            y=components_df['Trend_Score'],
+            marker_color='#FFD93D'
+        ))
+        
+        fig.add_trace(go.Bar(
+            name='Diversity (10)',
+            x=components_df['District'],
+            y=components_df['Diversity_Score'],
+            marker_color='#6BCF7F'
+        ))
+        
+        fig.update_layout(
+            title="Risk Score Components (Top 10 Districts)",
+            xaxis_title="District",
+            yaxis_title="Score",
+            barmode='stack',
+            height=500
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Show component explanation
+        with st.expander("📄 How Risk Scores are Calculated"):
+            st.markdown("""
+            **Risk Score Components:**
+            - **Volume Score (0-30 points)**: Based on total number of crimes
+            - **Severity Score (0-40 points)**: Weighted by crime type seriousness
+              - Violent Crimes: 3.0x weight
+              - Women & Children Crimes: 2.8x weight
+              - Cyber Crimes: 2.0x weight
+              - Property Crimes: 1.5x weight
+            - **Trend Score (0-20 points)**: Year-over-year growth rate
+            - **Diversity Score (0-10 points)**: Variety of crime types
+            
+            **Risk Levels:**
+            - 🔴 Extreme (75+) | 🟠 High (60-74) | 🟡 Moderate (40-59) | 🟢 Low (20-39) | ⚪ Minimal (<20)
+            """)
+    
+    with tab3:
+        st.subheader("🥧 Risk Level Distribution")
+        
+        risk_counts = risk_df['Risk_Level'].value_counts()
+        
+        fig = go.Figure(data=[go.Pie(
+            labels=risk_counts.index,
+            values=risk_counts.values,
+            hole=.4,
+            marker=dict(colors=['#FF0000', '#FF8C00', '#FFD700', '#32CD32', '#808080'])
+        )])
+        
+        fig.update_layout(
+            title="Distribution of Risk Levels",
+            height=500
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Show statistics
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("📈 Average Risk Score", f"{risk_df['Risk_Score'].mean():.2f}")
+        
+        with col2:
+            st.metric("🔴 Highest Risk", f"{risk_df['Risk_Score'].max():.2f}")
+            st.caption(f"{risk_df.iloc[0]['District']}, {risk_df.iloc[0]['State']}")
+        
+        with col3:
+            st.metric("🟢 Lowest Risk", f"{risk_df['Risk_Score'].min():.2f}")
+    
+    with tab4:
+        st.subheader("📈 Crime Volume vs Risk Score")
+        
+        scatter_data = risk_df.head(30)
+        
+        fig = px.scatter(
+            scatter_data,
+            x='Total_Crimes',
+            y='Risk_Score',
+            size='Active_Crime_Types',
+            color='Risk_Score',
+            hover_data=['District', 'State', 'Risk_Level'],
+            color_continuous_scale='RdYlGn_r',
+            title="Crime Volume vs Risk Score (Top 30 Districts)"
+        )
+        
+        fig.update_layout(height=600)
+        
+        st.plotly_chart(fig, use_container_width=True)
+
 def get_crime_columns(df):
     """Get crime columns from dataset"""
     return [col for col in df.columns if col not in 
@@ -731,7 +1095,8 @@ def main():
         "Crime Hotspots": "Identify top districts by crime count",
         "Cross-Dataset Comparison": "Compare IPC vs Cyber vs Women crimes",
         "Cross-State Analysis": "Same crime type across multiple states",
-        "Enhanced Visualizations": "Interactive pie charts, heatmaps, and advanced plots"
+        "Enhanced Visualizations": "Interactive pie charts, heatmaps, and advanced plots",
+        "District Risk Scoring": "Calculate comprehensive risk scores for districts (NEW!)"
     }
     
     # Use analysis type from home page if available, otherwise use main selection
@@ -1099,6 +1464,129 @@ def main():
                             )
                             
                             st.plotly_chart(fig, use_container_width=True)
+    
+    elif selected_analysis == "District Risk Scoring":
+        st.header("🎯 District Risk Scoring System")
+        
+        st.info("""
+        **Risk Scoring Methodology:**
+        This analysis calculates comprehensive risk scores (0-100) for districts based on:
+        - 📊 Crime Volume (30 pts)
+        - ⚡ Crime Severity (40 pts) - weighted by crime type
+        - 📈 Growth Trend (20 pts)
+        - 🎯 Crime Diversity (10 pts)
+        """)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            dataset_choice = st.selectbox("Choose Dataset:", list(datasets.keys()))
+            df = datasets[dataset_choice]
+            
+            scope = st.radio("Analysis Scope:", 
+                           ["Specific State", "Top Risk Districts (National)", "All States"])
+        
+        with col2:
+            if scope == "Specific State":
+                states = sorted(df['State Name'].unique())
+                selected_state = st.selectbox("Choose State:", states)
+            else:
+                selected_state = None
+            
+            if scope == "Top Risk Districts (National)":
+                n_top = st.number_input("Number of top districts:", min_value=5, max_value=50, value=20)
+            else:
+                n_top = None
+        
+        if st.button("📊 Calculate Risk Scores", type="primary"):
+            with st.spinner("Calculating risk scores..."):
+                if scope == "Specific State":
+                    risk_df = calculate_all_districts_risk_scores(df, selected_state)
+                    location_context = selected_state
+                else:
+                    risk_df = calculate_all_districts_risk_scores(df)
+                    location_context = None
+                
+                if risk_df is None or risk_df.empty:
+                    st.error("Could not calculate risk scores. Check if data is available.")
+                else:
+                    if scope == "Top Risk Districts (National)":
+                        risk_df = risk_df.head(n_top)
+                    
+                    # Display summary statistics
+                    st.success(f"✅ Analyzed {len(risk_df)} districts")
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("📈 Average Risk", f"{risk_df['Risk_Score'].mean():.2f}")
+                    
+                    with col2:
+                        st.metric("🔴 Highest Risk", f"{risk_df['Risk_Score'].max():.2f}")
+                    
+                    with col3:
+                        st.metric("🟢 Lowest Risk", f"{risk_df['Risk_Score'].min():.2f}")
+                    
+                    with col4:
+                        extreme_count = len(risk_df[risk_df['Risk_Score'] >= 75])
+                        st.metric("⚠️ Extreme Risk", extreme_count)
+                    
+                    # Risk level breakdown
+                    st.subheader("🎯 Risk Level Breakdown")
+                    risk_counts = risk_df['Risk_Level'].value_counts()
+                    
+                    for level, count in risk_counts.items():
+                        percentage = (count / len(risk_df)) * 100
+                        st.write(f"{level}: **{count}** districts ({percentage:.1f}%)")
+                    
+                    # Display top districts table
+                    st.subheader("📄 Risk Scores Table")
+                    
+                    display_df = risk_df[['District', 'State', 'Risk_Score', 'Risk_Level', 
+                                         'Total_Crimes', 'Active_Crime_Types']].copy()
+                    display_df.columns = ['District', 'State', 'Risk Score', 'Risk Level', 
+                                         'Total Crimes', 'Active Crime Types']
+                    
+                    st.dataframe(
+                        display_df.style.background_gradient(subset=['Risk Score'], cmap='RdYlGn_r'),
+                        use_container_width=True,
+                        height=400
+                    )
+                    
+                    # Visualizations
+                    st.subheader("📊 Visualizations")
+                    plot_risk_score_visualizations_streamlit(risk_df, location_context)
+                    
+                    # Export option
+                    csv = risk_df.to_csv(index=False).encode('utf-8')
+                    
+                    st.download_button(
+                        label="💾 Download Risk Scores as CSV",
+                        data=csv,
+                        file_name=f"risk_scores_{dataset_choice}_{scope.replace(' ', '_').lower()}.csv",
+                        mime="text/csv"
+                    )
+                    
+                    # Insights
+                    if len(risk_df) > 0:
+                        st.subheader("💡 Key Insights")
+                        
+                        top_risk = risk_df.iloc[0]
+                        st.warning(f"""
+                        **Highest Risk District:** {top_risk['District']}, {top_risk['State']}
+                        - Risk Score: {top_risk['Risk_Score']:.2f}/100
+                        - Risk Level: {top_risk['Risk_Level']}
+                        - Total Crimes: {top_risk['Total_Crimes']:,}
+                        """)
+                        
+                        if scope != "Specific State":
+                            # Show states with most high-risk districts
+                            high_risk_districts = risk_df[risk_df['Risk_Score'] >= 60]
+                            if len(high_risk_districts) > 0:
+                                st.info(f"""
+                                **States with Most High-Risk Districts:**
+                                {high_risk_districts['State'].value_counts().head(5).to_dict()}
+                                """)
     
     elif selected_analysis == "Cross-State Analysis":
         st.header("🌍 Cross-State Analysis")

@@ -85,6 +85,278 @@ CRIME_CATEGORIES = {
     ]
 }
 
+# Risk Score Weights for different crime categories
+RISK_WEIGHTS = {
+    'Violent Crimes': 3.0,      # Highest weight - most serious
+    'Women & Children Crimes': 2.8,
+    'Cyber Crimes': 2.0,
+    'Property Crimes': 1.5,
+    'Economic Crimes': 1.3,
+    'Public Order Crimes': 1.2,
+    'Drug & Substance': 1.8,
+    'Traffic & Vehicle': 1.0    # Lowest weight
+}
+
+def calculate_district_risk_score(district_data, crime_columns):
+    """
+    Calculate comprehensive risk score for a district based on multiple factors.
+    Returns a dictionary with overall score and component scores.
+    """
+    if district_data.empty:
+        return None
+    
+    risk_components = {}
+    
+    # 1. Total Crime Volume Score (0-30 points)
+    total_crimes = district_data[crime_columns].sum().sum()
+    volume_score = min(30, (total_crimes / 1000) * 10)  # Normalize to 30 points
+    risk_components['volume'] = volume_score
+    
+    # 2. Crime Severity Score (0-40 points) - weighted by crime category
+    severity_score = 0
+    for category, crimes in CRIME_CATEGORIES.items():
+        weight = RISK_WEIGHTS.get(category, 1.0)
+        category_total = 0
+        
+        for col in crime_columns:
+            col_lower = col.lower()
+            for crime_keyword in crimes:
+                if crime_keyword.lower() in col_lower:
+                    category_total += district_data[col].sum()
+                    break
+        
+        severity_score += (category_total / max(1, total_crimes)) * weight * 40
+    
+    risk_components['severity'] = min(40, severity_score)
+    
+    # 3. Growth Trend Score (0-20 points) - increasing trends are riskier
+    if 'Year' in district_data.columns and len(district_data['Year'].unique()) >= 2:
+        yearly_totals = district_data.groupby('Year')[crime_columns].sum().sum(axis=1)
+        if len(yearly_totals) >= 2:
+            recent_year = yearly_totals.iloc[-1]
+            previous_year = yearly_totals.iloc[-2]
+            
+            if previous_year > 0:
+                growth_rate = ((recent_year - previous_year) / previous_year) * 100
+                trend_score = min(20, max(0, growth_rate * 2))  # Positive growth = higher risk
+            else:
+                trend_score = 10  # Neutral if no previous data
+        else:
+            trend_score = 10
+    else:
+        trend_score = 10  # Neutral score if no year data
+    
+    risk_components['trend'] = trend_score
+    
+    # 4. Crime Diversity Score (0-10 points) - more crime types = higher risk
+    non_zero_crimes = sum(1 for col in crime_columns if district_data[col].sum() > 0)
+    diversity_score = min(10, (non_zero_crimes / len(crime_columns)) * 10)
+    risk_components['diversity'] = diversity_score
+    
+    # Calculate overall risk score (0-100)
+    overall_score = sum(risk_components.values())
+    
+    # Determine risk level
+    if overall_score >= 75:
+        risk_level = "🔴 EXTREME RISK"
+        color = "red"
+    elif overall_score >= 60:
+        risk_level = "🟠 HIGH RISK"
+        color = "orange"
+    elif overall_score >= 40:
+        risk_level = "🟡 MODERATE RISK"
+        color = "yellow"
+    elif overall_score >= 20:
+        risk_level = "🟢 LOW RISK"
+        color = "green"
+    else:
+        risk_level = "⚪ MINIMAL RISK"
+        color = "gray"
+    
+    return {
+        'overall_score': round(overall_score, 2),
+        'risk_level': risk_level,
+        'color': color,
+        'components': {
+            'volume': round(volume_score, 2),
+            'severity': round(severity_score, 2),
+            'trend': round(trend_score, 2),
+            'diversity': round(diversity_score, 2)
+        },
+        'total_crimes': int(total_crimes),
+        'crime_types_active': non_zero_crimes
+    }
+
+def calculate_all_districts_risk_scores(dataset, state_name=None):
+    """
+    Calculate risk scores for all districts in a dataset or specific state.
+    Returns a sorted DataFrame with risk scores.
+    """
+    # Get crime columns
+    crime_columns = [col for col in dataset.columns if col not in 
+                    ['ID', 'Year', 'State Name', 'State Code', 'District Name', 'District Code', 'Registration Circles']]
+    
+    if not crime_columns:
+        print("❌ No crime data found in dataset.")
+        return None
+    
+    # Filter by state if specified
+    if state_name:
+        dataset = dataset[dataset['State Name'] == state_name]
+    
+    if dataset.empty:
+        print(f"❌ No data found for state: {state_name}")
+        return None
+    
+    # Calculate risk scores for each district
+    risk_scores = []
+    
+    for (state, district), group in dataset.groupby(['State Name', 'District Name']):
+        score_data = calculate_district_risk_score(group, crime_columns)
+        
+        if score_data:
+            risk_scores.append({
+                'State': state.title(),
+                'District': district.title(),
+                'Risk_Score': score_data['overall_score'],
+                'Risk_Level': score_data['risk_level'],
+                'Total_Crimes': score_data['total_crimes'],
+                'Volume_Score': score_data['components']['volume'],
+                'Severity_Score': score_data['components']['severity'],
+                'Trend_Score': score_data['components']['trend'],
+                'Diversity_Score': score_data['components']['diversity'],
+                'Active_Crime_Types': score_data['crime_types_active']
+            })
+    
+    if not risk_scores:
+        print("❌ Could not calculate risk scores for any district.")
+        return None
+    
+    # Convert to DataFrame and sort by risk score
+    risk_df = pd.DataFrame(risk_scores)
+    risk_df = risk_df.sort_values('Risk_Score', ascending=False)
+    risk_df = risk_df.reset_index(drop=True)
+    risk_df.index = risk_df.index + 1  # 1-based index
+    
+    return risk_df
+
+def display_risk_score_table(risk_df, top_n=None, title="District Risk Scores"):
+    """
+    Display risk scores in a formatted table.
+    """
+    if risk_df is None or risk_df.empty:
+        print("❌ No risk score data to display.")
+        return
+    
+    display_df = risk_df.head(top_n) if top_n else risk_df
+    
+    print(f"\n{'='*120}")
+    print(f"📊 {title}")
+    print(f"{'='*120}")
+    
+    # Create formatted table
+    print(f"\n{'Rank':<6} {'District':<25} {'State':<20} {'Risk Level':<18} {'Score':<8} {'Crimes':<10} {'Vol':<7} {'Sev':<7} {'Trend':<7} {'Div':<7}")
+    print(f"{'-'*120}")
+    
+    for idx, row in display_df.iterrows():
+        # Truncate long names
+        district = row['District'][:23] + '..' if len(row['District']) > 25 else row['District']
+        state = row['State'][:18] + '..' if len(row['State']) > 20 else row['State']
+        
+        print(f"{idx:<6} {district:<25} {state:<20} {row['Risk_Level']:<18} {row['Risk_Score']:<8.2f} {row['Total_Crimes']:<10,} "
+              f"{row['Volume_Score']:<7.1f} {row['Severity_Score']:<7.1f} {row['Trend_Score']:<7.1f} {row['Diversity_Score']:<7.1f}")
+    
+    print(f"\n{'-'*120}")
+    print(f"Legend: Vol=Volume(/30), Sev=Severity(/40), Trend=Growth(/20), Div=Diversity(/10)")
+    print(f"Risk Levels: 🔴 EXTREME (75+) | 🟠 HIGH (60+) | 🟡 MODERATE (40+) | 🟢 LOW (20+) | ⚪ MINIMAL (<20)")
+    print(f"{'='*120}\n")
+
+def plot_risk_score_visualizations(risk_df, state_name=None):
+    """
+    Create comprehensive visualizations for risk scores.
+    """
+    if risk_df is None or risk_df.empty:
+        print("❌ No data to visualize.")
+        return
+    
+    # Limit to top 20 for better visualization
+    top_districts = risk_df.head(20)
+    
+    # Create figure with multiple subplots
+    fig = plt.figure(figsize=(16, 12))
+    
+    # 1. Horizontal bar chart of overall risk scores
+    ax1 = plt.subplot(2, 2, 1)
+    colors = top_districts.apply(lambda row: 
+        'red' if row['Risk_Score'] >= 75 else
+        'orange' if row['Risk_Score'] >= 60 else
+        'gold' if row['Risk_Score'] >= 40 else
+        'green', axis=1)
+    
+    ax1.barh(range(len(top_districts)), top_districts['Risk_Score'], color=colors)
+    ax1.set_yticks(range(len(top_districts)))
+    ax1.set_yticklabels(top_districts['District'].str[:20], fontsize=9)
+    ax1.set_xlabel('Risk Score (0-100)', fontweight='bold')
+    ax1.set_title('🎯 Top 20 Districts by Risk Score', fontweight='bold', fontsize=12)
+    ax1.invert_yaxis()
+    ax1.axvline(x=75, color='red', linestyle='--', alpha=0.3, label='Extreme Risk')
+    ax1.axvline(x=60, color='orange', linestyle='--', alpha=0.3, label='High Risk')
+    ax1.axvline(x=40, color='gold', linestyle='--', alpha=0.3, label='Moderate Risk')
+    ax1.legend(fontsize=8)
+    
+    # 2. Component scores comparison (stacked bar)
+    ax2 = plt.subplot(2, 2, 2)
+    components = top_districts[['District', 'Volume_Score', 'Severity_Score', 'Trend_Score', 'Diversity_Score']].head(10)
+    
+    x = range(len(components))
+    width = 0.8
+    
+    ax2.bar(x, components['Volume_Score'], width, label='Volume (30)', color='#FF6B6B')
+    ax2.bar(x, components['Severity_Score'], width, bottom=components['Volume_Score'], 
+            label='Severity (40)', color='#FFA07A')
+    ax2.bar(x, components['Trend_Score'], width, 
+            bottom=components['Volume_Score'] + components['Severity_Score'],
+            label='Trend (20)', color='#FFD93D')
+    ax2.bar(x, components['Diversity_Score'], width,
+            bottom=components['Volume_Score'] + components['Severity_Score'] + components['Trend_Score'],
+            label='Diversity (10)', color='#6BCF7F')
+    
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(components['District'].str[:15], rotation=45, ha='right', fontsize=8)
+    ax2.set_ylabel('Score', fontweight='bold')
+    ax2.set_title('📊 Risk Components Breakdown (Top 10)', fontweight='bold', fontsize=12)
+    ax2.legend(fontsize=8)
+    
+    # 3. Risk level distribution (pie chart)
+    ax3 = plt.subplot(2, 2, 3)
+    risk_counts = risk_df['Risk_Level'].value_counts()
+    colors_pie = ['red', 'orange', 'gold', 'green', 'gray']
+    ax3.pie(risk_counts.values, labels=risk_counts.index, autopct='%1.1f%%',
+            colors=colors_pie[:len(risk_counts)], startangle=90)
+    ax3.set_title('🥧 Risk Level Distribution', fontweight='bold', fontsize=12)
+    
+    # 4. Scatter plot: Total Crimes vs Risk Score
+    ax4 = plt.subplot(2, 2, 4)
+    scatter_data = risk_df.head(30)
+    scatter = ax4.scatter(scatter_data['Total_Crimes'], scatter_data['Risk_Score'],
+                         c=scatter_data['Risk_Score'], cmap='RdYlGn_r', s=100, alpha=0.6)
+    
+    # Add labels for top 5
+    for idx, row in scatter_data.head(5).iterrows():
+        ax4.annotate(row['District'][:10], (row['Total_Crimes'], row['Risk_Score']),
+                    fontsize=8, alpha=0.7)
+    
+    ax4.set_xlabel('Total Crimes', fontweight='bold')
+    ax4.set_ylabel('Risk Score', fontweight='bold')
+    ax4.set_title('📈 Crime Volume vs Risk Score', fontweight='bold', fontsize=12)
+    plt.colorbar(scatter, ax=ax4, label='Risk Score')
+    
+    title = f"Risk Score Analysis - {state_name.title()}" if state_name else "Risk Score Analysis - All Districts"
+    fig.suptitle(title, fontsize=16, fontweight='bold', y=0.995)
+    
+    plt.tight_layout()
+    plt.show()
+
 def check_dataset_directory():
     """
     Check if Dataset directory exists and create helpful error messages if not.
@@ -2591,13 +2863,14 @@ def get_main_analysis_choice():
     print("8. Cross-state comparison")
     print("9. 🎨 Enhanced Visualizations (Pie, Heatmap, Interactive)")
     print("10. 📊 Crime Category Analysis (Pie & Bar Charts)")
+    print("11. 🎯 District Risk Score Calculator (NEW!)")
     
     while True:
-        choice = input("\nEnter your choice (1-10): ").strip()
-        if choice in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
+        choice = input("\nEnter your choice (1-11): ").strip()
+        if choice in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']:
             return choice
         else:
-            print("❌ Invalid choice. Please enter 1-10.")
+            print("❌ Invalid choice. Please enter 1-11.")
 
 
 def handle_option_1_single_trend(datasets):
@@ -3204,6 +3477,173 @@ def handle_option_9_enhanced_visualizations(datasets):
         return False
 
 
+def handle_option_11_risk_scoring(datasets):
+    """Option 11: Calculate and analyze district risk scores"""
+    print("\n🎯 DISTRICT RISK SCORING SYSTEM")
+    print("="*70)
+    print("This analysis calculates comprehensive risk scores for districts based on:")
+    print("  • Crime Volume (30 points) - Total number of crimes")
+    print("  • Crime Severity (40 points) - Weighted by crime type seriousness")
+    print("  • Growth Trend (20 points) - Year-over-year crime increase")
+    print("  • Crime Diversity (10 points) - Variety of crime types")
+    print("\nRisk Levels: 🔴 Extreme (75+) | 🟠 High (60+) | 🟡 Moderate (40+) | 🟢 Low (20+) | ⚪ Minimal (<20)")
+    print("="*70)
+    
+    # 1️⃣ Choose dataset
+    print("\n1️⃣ Select dataset for risk analysis:")
+    file_choice = get_dataset_choice(list(datasets.keys()))
+    if not file_choice:
+        return False
+    
+    chosen_dataset_df = datasets[file_choice]
+    
+    # 2️⃣ Choose scope
+    print("\n2️⃣ Choose analysis scope:")
+    print("1. 🏛️  Specific State (all districts in one state)")
+    print("2. 🌍 National (all districts across all states)")
+    print("3. 🏆 Top Risk Districts (highest risk scores nationwide)")
+    
+    scope_choice = input("\nEnter scope (1-3): ").strip()
+    
+    if scope_choice == "1":
+        # State-specific analysis
+        print("\n3️⃣ Select state:")
+        state_name = get_state_choice(chosen_dataset_df['State Name'].unique())
+        if not state_name:
+            return False
+        
+        print(f"\n📊 Calculating risk scores for all districts in {state_name.title()}...")
+        risk_df = calculate_all_districts_risk_scores(chosen_dataset_df, state_name)
+        
+        if risk_df is None:
+            return False
+        
+        # Display results
+        print(f"\n✅ Analyzed {len(risk_df)} districts in {state_name.title()}")
+        
+        # Show summary statistics
+        print(f"\n📈 RISK SCORE SUMMARY:")
+        print(f"   Average Risk Score: {risk_df['Risk_Score'].mean():.2f}")
+        print(f"   Highest Risk: {risk_df['Risk_Score'].max():.2f} ({risk_df.iloc[0]['District']})")
+        print(f"   Lowest Risk: {risk_df['Risk_Score'].min():.2f}")
+        
+        # Risk level distribution
+        print(f"\n🎯 RISK LEVEL BREAKDOWN:")
+        for level, count in risk_df['Risk_Level'].value_counts().items():
+            percentage = (count / len(risk_df)) * 100
+            print(f"   {level}: {count} districts ({percentage:.1f}%)")
+        
+        # Display top districts
+        top_n = min(15, len(risk_df))
+        display_risk_score_table(risk_df, top_n, f"Top {top_n} Highest Risk Districts in {state_name.title()}")
+        
+        # Ask for visualizations
+        viz_choice = input("\n🎨 Generate visualizations? (yes/no): ").strip().lower()
+        if viz_choice in ['yes', 'y']:
+            plot_risk_score_visualizations(risk_df, state_name)
+        
+        # Export option
+        export_choice = input("\n💾 Export full risk scores to CSV? (yes/no): ").strip().lower()
+        if export_choice in ['yes', 'y']:
+            filename = f"risk_scores_{state_name}_{file_choice}.csv"
+            risk_df.to_csv(filename, index=False)
+            print(f"✅ Exported to {filename}")
+    
+    elif scope_choice == "2":
+        # National analysis
+        print(f"\n📊 Calculating risk scores for ALL districts nationwide...")
+        print("⚠️  This may take a moment for large datasets...")
+        
+        risk_df = calculate_all_districts_risk_scores(chosen_dataset_df)
+        
+        if risk_df is None:
+            return False
+        
+        print(f"\n✅ Analyzed {len(risk_df)} districts across {risk_df['State'].nunique()} states")
+        
+        # Show national statistics
+        print(f"\n📈 NATIONAL RISK SCORE SUMMARY:")
+        print(f"   Average Risk Score: {risk_df['Risk_Score'].mean():.2f}")
+        print(f"   Highest Risk: {risk_df['Risk_Score'].max():.2f} ({risk_df.iloc[0]['District']}, {risk_df.iloc[0]['State']})")
+        print(f"   Lowest Risk: {risk_df['Risk_Score'].min():.2f}")
+        
+        # Risk level distribution
+        print(f"\n🎯 NATIONAL RISK LEVEL BREAKDOWN:")
+        for level, count in risk_df['Risk_Level'].value_counts().items():
+            percentage = (count / len(risk_df)) * 100
+            print(f"   {level}: {count} districts ({percentage:.1f}%)")
+        
+        # Top states by average risk
+        print(f"\n🏛️  STATES BY AVERAGE RISK SCORE:")
+        state_avg_risk = risk_df.groupby('State')['Risk_Score'].mean().sort_values(ascending=False).head(10)
+        for i, (state, avg_score) in enumerate(state_avg_risk.items(), 1):
+            print(f"   {i:2d}. {state}: {avg_score:.2f}")
+        
+        # Display top districts
+        top_n = min(25, len(risk_df))
+        display_risk_score_table(risk_df, top_n, f"Top {top_n} Highest Risk Districts Nationwide")
+        
+        # Ask for visualizations
+        viz_choice = input("\n🎨 Generate visualizations? (yes/no): ").strip().lower()
+        if viz_choice in ['yes', 'y']:
+            plot_risk_score_visualizations(risk_df)
+        
+        # Export option
+        export_choice = input("\n💾 Export full risk scores to CSV? (yes/no): ").strip().lower()
+        if export_choice in ['yes', 'y']:
+            filename = f"risk_scores_national_{file_choice}.csv"
+            risk_df.to_csv(filename, index=False)
+            print(f"✅ Exported to {filename}")
+    
+    elif scope_choice == "3":
+        # Top risk districts
+        print(f"\n📊 Calculating risk scores to find highest risk districts nationwide...")
+        
+        risk_df = calculate_all_districts_risk_scores(chosen_dataset_df)
+        
+        if risk_df is None:
+            return False
+        
+        # Get top N
+        n_input = input("\nHow many top risk districts to show? (default: 20): ").strip()
+        try:
+            n = int(n_input) if n_input else 20
+            n = min(n, len(risk_df))  # Cap at available districts
+        except ValueError:
+            n = 20
+        
+        top_districts = risk_df.head(n)
+        
+        print(f"\n🔴 TOP {n} HIGHEST RISK DISTRICTS IN INDIA")
+        print(f"Based on {file_choice.replace('_', ' ').title()} dataset")
+        
+        display_risk_score_table(top_districts, n, f"Top {n} Highest Risk Districts")
+        
+        # Show which states appear most
+        print(f"\n🏛️  STATES WITH MOST HIGH-RISK DISTRICTS (in top {n}):")
+        state_counts = top_districts['State'].value_counts().head(10)
+        for state, count in state_counts.items():
+            print(f"   • {state}: {count} districts")
+        
+        # Visualizations
+        viz_choice = input("\n🎨 Generate visualizations? (yes/no): ").strip().lower()
+        if viz_choice in ['yes', 'y']:
+            plot_risk_score_visualizations(top_districts)
+        
+        # Export option
+        export_choice = input("\n💾 Export full risk scores to CSV? (yes/no): ").strip().lower()
+        if export_choice in ['yes', 'y']:
+            filename = f"risk_scores_top_{n}_{file_choice}.csv"
+            top_districts.to_csv(filename, index=False)
+            print(f"✅ Exported to {filename}")
+    
+    else:
+        print("❌ Invalid scope choice.")
+        return False
+    
+    print("\n✅ Risk scoring analysis completed!")
+    return True
+
 def handle_option_10_crime_categories(datasets):
     """Option 10: Crime Category Analysis with Pie & Bar Charts"""
     print("\n📊 CRIME CATEGORY ANALYSIS")
@@ -3379,6 +3819,10 @@ def main():
             result = handle_option_9_enhanced_visualizations(datasets)
         elif choice == '10':
             result = handle_option_10_crime_categories(datasets)
+        elif choice == '11':
+            result = handle_option_11_risk_scoring(datasets)
+        elif choice == '11':
+            result = handle_option_11_risk_scoring(datasets)
         
         if not result:
             print("\n❌ Analysis failed or was cancelled. Please try again.")

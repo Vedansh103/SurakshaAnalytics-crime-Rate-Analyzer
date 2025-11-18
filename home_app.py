@@ -739,7 +739,8 @@ def show_enhanced_analysis_interface(datasets):
         {"name": "Crime Hotspots", "icon": "🔥", "desc": "Identify high-risk areas", "color": "#ff6b6b"},
         {"name": "Cross-Dataset Comparison", "icon": "📊", "desc": "Compare dataset categories", "color": "#4ecdc4"},
         {"name": "Cross-State Analysis", "icon": "🌍", "desc": "Multi-state comparisons", "color": "#45b7d1"},
-        {"name": "Enhanced Visualizations", "icon": "🎨", "desc": "Interactive charts and plots", "color": "#96ceb4"}
+        {"name": "Enhanced Visualizations", "icon": "🎨", "desc": "Interactive charts and plots", "color": "#96ceb4"},
+        {"name": "District Risk Scoring", "icon": "🎯", "desc": "Calculate comprehensive risk scores (NEW!)", "color": "#FF4500"}
     ]
     
     # Create analysis selection cards in a grid
