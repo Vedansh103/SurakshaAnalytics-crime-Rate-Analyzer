@@ -10,7 +10,7 @@ from Data import (
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title="Suraksha Analytics",
+    page_title="Crime Analyser",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -62,7 +62,7 @@ def main():
     initialize_session_state()
     
     # Header
-    st.markdown('<h1 class="main-header">Suraksha Analytics</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">Crime Analyser</h1>', unsafe_allow_html=True)
     st.markdown("**Comprehensive District-wise Crime Data Analysis Platform for India (2017-2022)**")
     
     # Load datasets

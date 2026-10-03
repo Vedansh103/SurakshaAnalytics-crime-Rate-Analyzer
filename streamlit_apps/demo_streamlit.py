@@ -3,7 +3,7 @@
 Demo script to show Streamlit app information
 """
 
-print("SURAKSHA ANALYTICS - STREAMLIT WEB APP")
+print("CRIME ANALYSER - STREAMLIT WEB APP")
 print("=" * 50)
 print()
 print("To run the Streamlit web application:")
